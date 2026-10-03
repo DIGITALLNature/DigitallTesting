@@ -1,3 +1,68 @@
+# [1.1.0](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.0.0...v1.1.0) (2026-07-01)
+
+
+### Bug Fixes
+
+* **bulk-delete:** copy RecurrencePattern and StartDateTime to asyncoperation ([3cffda7](https://github.com/DIGITALLNature/DigitallTesting/commit/3cffda747e6ab67fc229544f3c434959c941aea4))
+* **bulk-delete:** omit recurrencepattern and recurrencestarttime when not set ([0c0a2e8](https://github.com/DIGITALLNature/DigitallTesting/commit/0c0a2e8ba3ba3c31ed95be45cb958801690e365c))
+* **bulk-delete:** populate name, ownerid, and operationtype on asyncoperation entity ([2ac6f28](https://github.com/DIGITALLNature/DigitallTesting/commit/2ac6f2877d35e41ac66c1306abf20086370395a6))
+* deep-clone OptionSetValue instances inside OptionSetValueCollection ([dd72956](https://github.com/DIGITALLNature/DigitallTesting/commit/dd72956bbc71b69acaddfd9da17bce1b54805b0a))
+* enforce single-child and entity type validation for N:1 deep insert ([7ae25aa](https://github.com/DIGITALLNature/DigitallTesting/commit/7ae25aac5314de8d83c2998577bb1c1efd39059f))
+* ensure CloneEntity returns base Entity runtime type ([f393387](https://github.com/DIGITALLNature/DigitallTesting/commit/f393387eb870c2aa6ccac1b739fca74e3752ebc7))
+* fall back to EntityLogicalNameAttribute in CreateQuery<T> when type is not in resolver cache ([5ba7140](https://github.com/DIGITALLNature/DigitallTesting/commit/5ba714058350ecfee5538da177a4645b247d490b))
+* merge attributes on Update instead of replacing the entire entity ([753ecd6](https://github.com/DIGITALLNature/DigitallTesting/commit/753ecd628e42bb37c0df76cebba90356b9e0fd58))
+* **query:** clone outer entity per row in LeftOuter join ([501db49](https://github.com/DIGITALLNature/DigitallTesting/commit/501db49b5fd02836023dd2323b927111711374e9))
+* **query:** fix 4 critical query engine bugs ([ef0e7e4](https://github.com/DIGITALLNature/DigitallTesting/commit/ef0e7e4f593fb4a70b145b5c9bf9f766a19b77d6))
+* **query:** guard against null Attributes array in PatchDateFormat ([3021776](https://github.com/DIGITALLNature/DigitallTesting/commit/30217760e3879d93a72d3caaae30b58acf364563))
+* **query:** handle null otherEntity in JoinAttributes for left outer joins ([a7c67cb](https://github.com/DIGITALLNature/DigitallTesting/commit/a7c67cb2822f4a5cf84c018e373eb7bbe18944c5))
+* **query:** honor LinkEntity.Orders in RetrieveMultiple ordering ([#42](https://github.com/DIGITALLNature/DigitallTesting/issues/42)) ([4b363b1](https://github.com/DIGITALLNature/DigitallTesting/commit/4b363b15f6cfa15b99a79854fab5b51e9c5c4d27))
+* **query:** honor root-level OrderExpression.EntityName for linked-entity sorting ([#43](https://github.com/DIGITALLNature/DigitallTesting/issues/43)) ([102de5d](https://github.com/DIGITALLNature/DigitallTesting/commit/102de5dc96d13cf11c467878e0b8bd9294d1ce61))
+* **query:** match primary id attribute against Entity.Id in RetrieveMultiple ([5853fb6](https://github.com/DIGITALLNature/DigitallTesting/commit/5853fb6413bc11bef5387ad8a6fc2c29fb7c16ca))
+* **query:** materialize DateTime attributes before modifying collection in PatchDateFormat ([dd4d2e3](https://github.com/DIGITALLNature/DigitallTesting/commit/dd4d2e38cd37437d5e34bf62bf538f2825a8601d))
+* **query:** pass Guid directly for EqualUserId/EqualBusinessId conditions ([e7b8c77](https://github.com/DIGITALLNature/DigitallTesting/commit/e7b8c7747bfb58ec197d16ae2c42a708939bcc60))
+* **query:** prefer OrderExpression.Alias over EntityName in CollectOrders ([#44](https://github.com/DIGITALLNature/DigitallTesting/issues/44)) ([890d912](https://github.com/DIGITALLNature/DigitallTesting/commit/890d91220a070631e72d752654ac1655fd7681ee))
+* **query:** treat fetchxml bool condition values without metadata as bool ([8be757e](https://github.com/DIGITALLNature/DigitallTesting/commit/8be757e7ff0ccd04ff32754d1481d1d127b2c380))
+* **query:** use fiscalYear from condition as year for InFiscalYear date range ([e4677e6](https://github.com/DIGITALLNature/DigitallTesting/commit/e4677e6f12c28386b0da3bd165bd3d9a1c7a848c))
+* **query:** use TimeOnly.MaxValue for end-of-day upper bound in date range operators ([49b1679](https://github.com/DIGITALLNature/DigitallTesting/commit/49b167967c88af1ae1cae1f11c37845f7b760dfa))
+* **query:** validate actual values in aggregate FetchXml guards ([fe9cfcf](https://github.com/DIGITALLNature/DigitallTesting/commit/fe9cfcf75b132ef7e201f816ccce312d0db8d8f1))
+* remove 14 redundant using directives ([1771050](https://github.com/DIGITALLNature/DigitallTesting/commit/1771050a86d4c7c70229350a7c3767a7d478e244))
+* remove 5 unused local variables ([a94494e](https://github.com/DIGITALLNature/DigitallTesting/commit/a94494e93974b9c253b885bb875570e7888a4cc8))
+* remove redundant System.Reflection qualifier ([5367eb2](https://github.com/DIGITALLNature/DigitallTesting/commit/5367eb2709019b08586007af1e67871f2d6c6520))
+* replace Activator.CreateInstance with plain Entity in ProjectAttributes ([a87bb5b](https://github.com/DIGITALLNature/DigitallTesting/commit/a87bb5b251a7090503440bae6e7a6650164fd188))
+* replace generic exceptions with Dataverse-style FaultException ([fb21ac0](https://github.com/DIGITALLNature/DigitallTesting/commit/fb21ac0e3bcea090fc94db04541461cd79de08f1))
+* replace obsolete HasCount() with Count().IsEqualTo() ([d8c5857](https://github.com/DIGITALLNature/DigitallTesting/commit/d8c585730b390ef9bb1dd9c3568255271c6e9c2d))
+* resolve ambiguous XML doc comment reference ([2a6be1b](https://github.com/DIGITALLNature/DigitallTesting/commit/2a6be1b6134ec0a4320ecd049507f064e68b5a0c))
+* **retrieve:** translate QueryByAttribute Attributes/Values and Orders in RetrieveFake ([1bffa18](https://github.com/DIGITALLNature/DigitallTesting/commit/1bffa1850191b4a33d6b74c1329ededf8e480e5c))
+* skip ownerid default when proxy type has no ownerid attribute ([714dd89](https://github.com/DIGITALLNature/DigitallTesting/commit/714dd8927a023bf4db37e731fa60d94ff49a7b05))
+* support reverse-direction (ManyToOne) nested deep insert ([00df6e8](https://github.com/DIGITALLNature/DigitallTesting/commit/00df6e8ebe88f1b1e588bb9374e5a74c89c8cd14))
+* use Count property instead of Count() method ([49c69cd](https://github.com/DIGITALLNature/DigitallTesting/commit/49c69cdf2b07c8dd2672c39e471b218c1f89a131))
+* validate maxRetrieveCount argument in WithMaxRetrieveCount ([3c7797d](https://github.com/DIGITALLNature/DigitallTesting/commit/3c7797dbf38f161b512cf206f949f846aec58ac1))
+* validate relationship metadata matches parent entity in DeepInsertProcessor ([2a6952a](https://github.com/DIGITALLNature/DigitallTesting/commit/2a6952a075f5a5b63999a97d00c424dae4d91852))
+
+
+### Features
+
+* add FetchXmlToQueryExpression organization request fake ([5885467](https://github.com/DIGITALLNature/DigitallTesting/commit/5885467a38070f866d7c39872d52bbbd1a3927fe))
+* add QueryExpressionToFetchXml organization request fake ([c0366cb](https://github.com/DIGITALLNature/DigitallTesting/commit/c0366cbae0136d0e7c86b17af8ca569638903f7f))
+* add RelatedEntitiesQuery support to RetrieveFake ([868a555](https://github.com/DIGITALLNature/DigitallTesting/commit/868a555f5da491c55a198677a5e3634a398b59a0))
+* add RetrieveAllEntities organization request fake ([83db189](https://github.com/DIGITALLNature/DigitallTesting/commit/83db189b84176a176ea16da4449dd9b7bc0056b8))
+* add RetrieveAttributeFake implementation ([e64ac18](https://github.com/DIGITALLNature/DigitallTesting/commit/e64ac1845235ffab4e66160c1227312b9b814535))
+* **query:** implement CompareColumns and MatchFirstRowUsingCrossApply ([b4f9bd1](https://github.com/DIGITALLNature/DigitallTesting/commit/b4f9bd1a9e09a98fc0ec825369519035c7d3ac5b))
+* **query:** support EXISTS-style semi-joins via JoinOperator.Any/NotAny/Exists ([63df498](https://github.com/DIGITALLNature/DigitallTesting/commit/63df49884c6789a09cf0d689c3812ecc9ef015a7))
+* **query:** support FilterExpression.AnyAllFilterLinkEntity and JoinOperator.All/NotAll ([87704f4](https://github.com/DIGITALLNature/DigitallTesting/commit/87704f4711f2fbc220dde3c3607e1996cfb36cd9))
+* route Create/Update/Delete/Retrieve/Associate/Disassociate through Execute pipeline ([374604b](https://github.com/DIGITALLNature/DigitallTesting/commit/374604bc26e80ba0e04ce8ad075b4c2465b6965b))
+* set audit fields and RowVersion on Create and Update ([f1c7f92](https://github.com/DIGITALLNature/DigitallTesting/commit/f1c7f92635272cd59eb548609a8263f8fe60da88))
+* support deep insert (RelatedEntities) in CreateFake and UpsertFake ([103f0de](https://github.com/DIGITALLNature/DigitallTesting/commit/103f0dee5f8da5422b7960dd9f00f7adac9a2e81))
+* use Options class for explicit configuration ([8482732](https://github.com/DIGITALLNature/DigitallTesting/commit/84827320752501ff3f55b434a3cc2eb1264e7cab))
+
+
+### Performance Improvements
+
+* cache EntityLogicalNameAttribute lookup in CreateQuery<T> ([863ba8d](https://github.com/DIGITALLNature/DigitallTesting/commit/863ba8d704f6b7bc1a8e62c6ddc6ce1849d01881))
+* cache MethodInfo lookups in ConditionParser as static readonly fields ([0f89d70](https://github.com/DIGITALLNature/DigitallTesting/commit/0f89d7078adc9e2a43ee582cdfb0646863bfd99f))
+* compile proxy converter delegates via expression trees ([1c38463](https://github.com/DIGITALLNature/DigitallTesting/commit/1c384630643bf2824b509750e01d5cd3d01843f7))
+* use pattern matching in XrmOrderByAttributeComparer ([f035a4a](https://github.com/DIGITALLNature/DigitallTesting/commit/f035a4a2653abf422088b330dfa692c56a3627b6))
+
 # [1.1.0-beta.12](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.0-beta.11...v1.1.0-beta.12) (2026-06-19)
 
 
