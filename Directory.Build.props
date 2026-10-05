@@ -33,7 +33,7 @@
   <PropertyGroup>
     <Version>1.2.0-beta.1</Version>
     <InformationalVersion>1.2.0-beta.1</InformationalVersion>
-    <RepositoryCommit>30df46144c538d0fe6660167c77f9848d74b8524</RepositoryCommit>
+    <RepositoryCommit>bbb55588caaf19205f76422a448f071e9f5be8e0</RepositoryCommit>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
