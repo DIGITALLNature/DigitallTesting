@@ -246,9 +246,7 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
 
         foreach (var entityRef in entity.Attributes.Values.OfType<EntityReference>().Where(er => er.KeyAttributes?.Count > 0))
         {
-            if (!ServiceState.TryGetValue(entityRef.LogicalName, out var refState)) continue;
-
-            var match = refState.Values.SingleOrDefault(e => entityRef.KeyAttributes.All(k => e.Contains(k.Key) && e[k.Key].Equals(k.Value)));
+            var match = FindEntityByAlternateKey(entityRef.LogicalName, entityRef.KeyAttributes);
 
             if (match is null) continue;
 
@@ -510,17 +508,60 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
 
     public Entity RetrieveWithAlternateKey(string entityName, KeyAttributeCollection keys, ColumnSet columnSet)
     {
-        if (!ServiceState.TryGetValue(entityName, out var value))
+        if (!ServiceState.TryGetValue(entityName, out _))
         {
             ThrowIfNotKnownEntityType(entityName);
         }
 
-        var record = value?.Values.SingleOrDefault(row => keys.All(key => row.Attributes.ContainsKey(key.Key) && row.Attributes[key.Key] != null && row.Attributes[key.Key].Equals(key.Value)));
+        var record = FindEntityByAlternateKey(entityName, keys);
         if (record == null)
         {
             ErrorFactory.ThrowFault(ErrorCodes.ObjectDoesNotExist, $"Entity '{entityName}' With Key = {string.Join(",", keys.Keys)} Does Not Exist");
         }
 
         return record.ProjectAttributes(columnSet, this).CloneEntity();
+    }
+
+    internal Entity? FindEntityByAlternateKey(string entityName, KeyAttributeCollection keys)
+    {
+        if (keys.Count == 0 || !ServiceState.TryGetValue(entityName, out var value) || value == null)
+        {
+            return null;
+        }
+
+        return value.Values.SingleOrDefault(row => keys.All(key =>
+            TryGetAttributeOrKeyValue(row, key.Key, out var val) && KeyValueEquals(val, key.Value)));
+    }
+
+    private static bool TryGetAttributeOrKeyValue(Entity entity, string keyName, out object? value)
+    {
+        if (entity.Attributes.TryGetValue(keyName, out value))
+        {
+            return true;
+        }
+
+        if (entity.KeyAttributes.ContainsKey(keyName))
+        {
+            value = entity.KeyAttributes[keyName];
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private static bool KeyValueEquals(object? storedValue, object? keyValue)
+    {
+        if (storedValue is null && keyValue is null) return true;
+        if (storedValue is null || keyValue is null) return false;
+        if (storedValue is string s1 && keyValue is string s2)
+            return string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
+        if (storedValue is OptionSetValue osv1 && keyValue is OptionSetValue osv2)
+            return osv1.Value == osv2.Value;
+        if (storedValue is OptionSetValue osv && keyValue is int intVal)
+            return osv.Value == intVal;
+        if (storedValue is int intVal2 && keyValue is OptionSetValue osv3)
+            return intVal2 == osv3.Value;
+        return Equals(storedValue, keyValue);
     }
 }
