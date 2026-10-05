@@ -411,6 +411,7 @@ Built-in fakes for common Dataverse operations:
 | `QueryExpressionToFetchXmlRequest` | `QueryExpressionToFetchXmlFake` | Convert a `QueryExpression` to FetchXml |
 | `FetchXmlToQueryExpressionRequest` | `FetchXmlToQueryExpressionFake` | Convert FetchXml to a `QueryExpression` |
 | `ExecuteTransactionRequest` | `ExecuteTransactionFake` | Batch transaction execution |
+| `ExecuteMultipleRequest` | `ExecuteMultipleFake` | Batch execution with error handling and response collection |
 | `BulkDeleteRequest` | `BulkDeleteFake` | Bulk delete operations |
 
 ### Custom Request Fakes
