@@ -1,3 +1,12 @@
+# [1.2.0-beta.3](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* never match null alternate key values ([24b903b](https://github.com/DIGITALLNature/DigitallTesting/commit/24b903b8cf5629b83502c17e1390eb9eb0ef6ddc))
+* **requests:** fault nested ExecuteMultiple per item ([178471b](https://github.com/DIGITALLNature/DigitallTesting/commit/178471b9cfa3304f98abf8709f38421fe0ab1806))
+* **requests:** make CreateMultiple and UpdateMultiple atomic ([22b458e](https://github.com/DIGITALLNature/DigitallTesting/commit/22b458efc2be4298a61d87115e1c40ff413038f6))
+
 # [1.2.0-beta.2](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-10-05)
 
 
