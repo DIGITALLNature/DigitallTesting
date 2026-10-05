@@ -1,3 +1,24 @@
+# [1.2.0](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.0...v1.2.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* align organization fakes with Dataverse validation and state precedence ([30df461](https://github.com/DIGITALLNature/DigitallTesting/commit/30df46144c538d0fe6660167c77f9848d74b8524))
+* never match null alternate key values ([24b903b](https://github.com/DIGITALLNature/DigitallTesting/commit/24b903b8cf5629b83502c17e1390eb9eb0ef6ddc))
+* **requests:** fault nested ExecuteMultiple per item ([178471b](https://github.com/DIGITALLNature/DigitallTesting/commit/178471b9cfa3304f98abf8709f38421fe0ab1806))
+* **requests:** make CreateMultiple and UpdateMultiple atomic ([22b458e](https://github.com/DIGITALLNature/DigitallTesting/commit/22b458efc2be4298a61d87115e1c40ff413038f6))
+* **requests:** support alternate keys in UpsertFake ([fce48af](https://github.com/DIGITALLNature/DigitallTesting/commit/fce48af73a45ba1e9ee05eb0baa669021a83606f)), closes [#49](https://github.com/DIGITALLNature/DigitallTesting/issues/49)
+* trigger release with qodana fixes ([372cf21](https://github.com/DIGITALLNature/DigitallTesting/commit/372cf21a2d4d70db4dc7d4498e01c98c7b3f6285))
+
+
+### Features
+
+* add CreateMultiple and UpdateMultiple organization request fakes ([ed678cc](https://github.com/DIGITALLNature/DigitallTesting/commit/ed678cc70ee0cd722d1bb88f5f18afa86a8de6d9))
+* add ExecuteMultiple organization request fake ([a621290](https://github.com/DIGITALLNature/DigitallTesting/commit/a6212908db8a629c9c88fb357a2bc8ec3cb4da7e))
+* add RetrieveCurrentOrganization organization request fake ([5d32372](https://github.com/DIGITALLNature/DigitallTesting/commit/5d3237288884a67856ef8e3c5a8b7f374f7ed80a))
+* add RetrieveRelationship organization request fake ([eef74a3](https://github.com/DIGITALLNature/DigitallTesting/commit/eef74a32c831eeb7d720f2f02f556f4c9a34bb9d))
+* add RetrieveVersion organization request fake ([987979c](https://github.com/DIGITALLNature/DigitallTesting/commit/987979c662decb3204fe73cf78d8e3c33abe3ea7))
+
 # [1.2.0-beta.3](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-10-05)
 
 
