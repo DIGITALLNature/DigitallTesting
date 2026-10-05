@@ -10,4 +10,7 @@ public class FakeDataverseOptions
     public DateOnly? FiscalYearStart { get; set; }
     public int MaxRetrieveCount { get; set; } = 5000;
     public string OrganizationVersion { get; set; } = "9.2.0.0";
+    public Guid OrganizationId { get; set; } = Guid.Empty;
+    public string OrganizationUniqueName { get; set; } = "org";
+    public string OrganizationFriendlyName { get; set; } = "Fake Organization";
 }

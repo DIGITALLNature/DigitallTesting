@@ -208,6 +208,8 @@ var service = new FakeDataverseBuilder()
 - `.WithMaxRetrieveCount(int)` — set the max records per page
 - `.WithFiscalYearStart(DateOnly)` — set the fiscal year start date
 - `.WithOrganizationVersion(string)` — set the Dataverse version string
+- `.WithOrganizationId(Guid)` — set the organization ID
+- `.WithOrganizationName(uniqueName, friendlyName?)` — set the organization unique and friendly name
 
 ### PluginExecutionContextBuilder
 
@@ -410,6 +412,7 @@ Built-in fakes for common Dataverse operations:
 | `AssignRequest` | `AssignRequestFake` | Record ownership assignment |
 | `WhoAmIRequest` | `WhoAmIFake` | Current user identity |
 | `RetrieveVersionRequest` | `RetrieveVersionFake` | Dataverse organization version retrieval |
+| `RetrieveCurrentOrganizationRequest` | `RetrieveCurrentOrganizationFake` | Current organization details retrieval |
 | `RetrieveEntityRequest` | `RetrieveEntityFake` | Entity metadata retrieval |
 | `RetrieveAllEntitiesRequest` | `RetrieveAllEntitiesFake` | Retrieve metadata for all known entities |
 | `RetrieveAttributeRequest` | `RetrieveAttributeFake` | Attribute metadata retrieval |
@@ -600,6 +603,9 @@ The `FakeOrganizationService` exposes a `FakeDataverseOptions` instance via the 
 | `FiscalYearStart` | `DateOnly?` | Start date for fiscal year calculations | `null` (defaults to Jan 1) |
 | `MaxRetrieveCount` | `int` | Maximum records returned by `RetrieveMultiple` per page | `5000` |
 | `OrganizationVersion` | `string` | Dataverse version string returned by `RetrieveVersion` | `"9.2.0.0"` |
+| `OrganizationId` | `Guid` | Organization ID (used in `WhoAmI` and `RetrieveCurrentOrganization`) | `Guid.Empty` |
+| `OrganizationUniqueName` | `string` | Unique name of the organization | `"org"` |
+| `OrganizationFriendlyName` | `string` | Display name of the organization | `"Fake Organization"` |
 
 Configure via the builder:
 

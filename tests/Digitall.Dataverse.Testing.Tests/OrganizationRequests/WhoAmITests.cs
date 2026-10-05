@@ -18,4 +18,16 @@ public class WhoAmITests
 
         await Assert.That(result).IsTypeOf<WhoAmIResponse>();
     }
+
+    [Test]
+    public async Task WhoAmI_WithOptionsOrganizationId_ReturnsOrganizationId()
+    {
+        var sut = new FakeOrganizationService();
+        var orgId = Guid.NewGuid();
+        sut.Options.OrganizationId = orgId;
+
+        var result = (WhoAmIResponse)sut.Execute(new WhoAmIRequest());
+
+        await Assert.That(result.OrganizationId).IsEqualTo(orgId);
+    }
 }
