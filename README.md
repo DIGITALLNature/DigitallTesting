@@ -471,6 +471,14 @@ service.Associate("account", accountId,
         new EntityReference("contact", contactId1),
         new EntityReference("contact", contactId2)
     });
+
+// Disassociate contacts from an account (clears parentcustomerid lookup)
+service.Disassociate("account", accountId,
+    new Relationship("account_contacts"),
+    new EntityReferenceCollection
+    {
+        new EntityReference("contact", contactId1)
+    });
 ```
 
 ### N:N Relationships

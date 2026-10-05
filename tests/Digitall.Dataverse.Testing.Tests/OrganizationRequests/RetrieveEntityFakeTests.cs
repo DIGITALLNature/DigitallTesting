@@ -1,7 +1,10 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
+using System.ServiceModel;
+using Digitall.Dataverse.Testing.Errors;
 using Digitall.Dataverse.Testing.OrganizationRequests;
+using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 
@@ -63,8 +66,35 @@ public class RetrieveEntityFakeTests
 
         void Action() => _sut.Execute(new RetrieveEntityRequest { LogicalName = "contact" });
 
-        Assert.Throws<KeyNotFoundException>(Action);
-        await Task.CompletedTask;
+        var ex = Assert.Throws<FaultException<OrganizationServiceFault>>(Action);
+        await Assert.That(ex.Detail.ErrorCode).IsEqualTo((int)ErrorCodes.QueryBuilderNoEntity);
+    }
+
+    [Test]
+    public async Task Execute_RegisteredMetadataId_ReturnsEntityMetadata()
+    {
+        var metaId = Guid.NewGuid();
+        var metadata = new EntityMetadata { LogicalName = "account", MetadataId = metaId };
+        _sut.AddMetadata(metadata);
+
+        var response = (RetrieveEntityResponse)_sut.Execute(new RetrieveEntityRequest
+        {
+            MetadataId = metaId
+        });
+
+        await Assert.That(response.EntityMetadata).IsNotNull();
+        await Assert.That(response.EntityMetadata.LogicalName).IsEqualTo("account");
+    }
+
+    [Test]
+    public async Task Execute_NonRegisteredMetadataId_ThrowsFault()
+    {
+        var nonExistentId = Guid.NewGuid();
+
+        void Action() => _sut.Execute(new RetrieveEntityRequest { MetadataId = nonExistentId });
+
+        var ex = Assert.Throws<FaultException<OrganizationServiceFault>>(Action);
+        await Assert.That(ex.Detail.ErrorCode).IsEqualTo((int)ErrorCodes.QueryBuilderNoEntity);
     }
 
     [Test]

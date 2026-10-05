@@ -246,9 +246,11 @@ public class UpsertFakeAlternateKeyTests
         // Arrange
         _sut.Add(new Entity("account", Guid.NewGuid()) { ["accountnumber"] = null, ["name"] = "Existing" });
 
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = null!;
-        target["name"] = "New";
+        var target = new Entity("account")
+        {
+            ["name"] = "New",
+            KeyAttributes = { { "accountnumber", null! } }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });

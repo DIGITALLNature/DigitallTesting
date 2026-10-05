@@ -61,7 +61,7 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
     /// </summary>
     internal T ExecuteAtomic<T>(Func<T> action)
     {
-        var snapshot = ServiceState.ToDictionary(table => table.Key, table => new Dictionary<Guid, Entity>(table.Value));
+        var snapshot = ServiceState.ToDictionary(table => table.Key, table => new Dictionary<Guid, Entity>(table.Value), StringComparer.OrdinalIgnoreCase);
 
         try
         {

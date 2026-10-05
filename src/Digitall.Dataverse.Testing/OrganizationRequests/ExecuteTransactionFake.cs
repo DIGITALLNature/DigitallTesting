@@ -1,6 +1,7 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
+using Digitall.Dataverse.Testing.Errors;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 
@@ -10,17 +11,29 @@ public class ExecuteTransactionFake : OrganizationRequestFake<ExecuteTransaction
 {
     public override ExecuteTransactionResponse Execute(ExecuteTransactionRequest organizationRequest, FakeOrganizationService fakeOrganizationService)
     {
-        var response = new ExecuteTransactionResponse { ["Responses"] = new OrganizationResponseCollection() };
+        ArgumentNullException.ThrowIfNull(organizationRequest);
+        ArgumentNullException.ThrowIfNull(fakeOrganizationService);
 
-        foreach (var r in organizationRequest.Requests)
+        if (organizationRequest.Requests == null)
         {
-            var result = fakeOrganizationService.Execute(r);
-
-            if (organizationRequest.ReturnResponses.HasValue && organizationRequest.ReturnResponses.Value)
-            {
-                response.Responses.Add(result);
-            }
+            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "Required field 'Requests' is missing");
         }
-        return response;
+
+        return fakeOrganizationService.ExecuteAtomic(() =>
+        {
+            var response = new ExecuteTransactionResponse { ["Responses"] = new OrganizationResponseCollection() };
+
+            foreach (var r in organizationRequest.Requests)
+            {
+                var result = fakeOrganizationService.Execute(r);
+
+                if (organizationRequest.ReturnResponses.HasValue && organizationRequest.ReturnResponses.Value)
+                {
+                    response.Responses.Add(result);
+                }
+            }
+
+            return response;
+        });
     }
 }

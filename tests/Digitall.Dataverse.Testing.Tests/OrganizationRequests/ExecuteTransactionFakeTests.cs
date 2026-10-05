@@ -2,6 +2,7 @@
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
 using System.ServiceModel;
+using Digitall.Dataverse.Testing.Errors;
 using Digitall.Dataverse.Testing.OrganizationRequests;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
@@ -127,6 +128,27 @@ public class ExecuteTransactionFakeTests
     }
 
     [Test]
+    public async Task Execute_FailingRequest_RollsBackAllOperations()
+    {
+        var accountId = Guid.NewGuid();
+        var request = new ExecuteTransactionRequest
+        {
+            Requests =
+            [
+                new CreateRequest { Target = new Entity("account") { Id = accountId, ["name"] = "ShouldBeRolledBack" } },
+                new DeleteRequest { Target = new EntityReference("account", Guid.NewGuid()) } // Non-existing
+            ]
+        };
+
+        void Action() => _sut.Execute(request);
+
+        Assert.Throws<FaultException<OrganizationServiceFault>>(Action);
+
+        var exists = _sut.CreateQuery("account").Any(a => a.Id == accountId);
+        await Assert.That(exists).IsFalse();
+    }
+
+    [Test]
     public async Task Execute_EmptyRequests_ReturnsEmptyResponse()
     {
         var request = new ExecuteTransactionRequest
@@ -138,5 +160,19 @@ public class ExecuteTransactionFakeTests
         var response = (ExecuteTransactionResponse)_sut.Execute(request);
 
         await Assert.That(response.Responses).IsEmpty();
+    }
+
+    [Test]
+    public async Task Execute_NullRequests_ThrowsFault()
+    {
+        var request = new ExecuteTransactionRequest
+        {
+            Requests = null!
+        };
+
+        void Action() => _sut.Execute(request);
+
+        var ex = Assert.Throws<FaultException<OrganizationServiceFault>>(Action);
+        await Assert.That(ex.Detail.ErrorCode).IsEqualTo((int)ErrorCodes.InvalidArgument);
     }
 }

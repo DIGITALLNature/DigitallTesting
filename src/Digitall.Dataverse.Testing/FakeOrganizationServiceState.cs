@@ -12,11 +12,11 @@ public class FakeOrganizationServiceState
 {
     public List<Assembly> ModelAssemblies { get; } = SearchProxyTypesAssembly();
 
-    public Dictionary<string, EntityMetadata> EntityMetadata { get; } = new();
+    public Dictionary<string, EntityMetadata> EntityMetadata { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public Dictionary<string, RelationshipMetadataBase> Relationships { get; } = new();
+    public Dictionary<string, RelationshipMetadataBase> Relationships { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-    internal Dictionary<string, Dictionary<Guid, Entity>> Entities { get; } = new(); // statt "State"
+    internal Dictionary<string, Dictionary<Guid, Entity>> Entities { get; } = new(StringComparer.OrdinalIgnoreCase); // statt "State"
 
     private static List<Assembly> SearchProxyTypesAssembly()
     {
