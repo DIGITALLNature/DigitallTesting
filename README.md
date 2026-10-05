@@ -95,7 +95,7 @@ using Digitall.Dataverse.Testing;
 public class AccountTests
 {
     [Test]
-    public void Should_CreateAndRetrieveEntity()
+    public async Task Should_CreateAndRetrieveEntity()
     {
         // Arrange — use the builder for a fully configured service
         var service = new FakeDataverseBuilder().GetOrganizationService();
@@ -107,7 +107,7 @@ public class AccountTests
         var retrieved = service.Retrieve("account", id, new ColumnSet("name"));
 
         // Assert
-        Assert.That(retrieved["name"], Is.EqualTo("Contoso Ltd"));
+        await Assert.That(retrieved["name"]).IsEqualTo("Contoso Ltd");
     }
 }
 ```
@@ -267,7 +267,7 @@ service.AddRequest(spy);
 service.Execute(new MyCustomRequest());
 
 // Verify
-Assert.That(spy.ReceivedRequests, Has.Count.EqualTo(1));
+await Assert.That(spy.ReceivedRequests).Count().IsEqualTo(1);
 ```
 
 ---
@@ -540,7 +540,7 @@ var service = new FakeDataverseBuilder()
 
 ```csharp
 [Test]
-public void MyPlugin_OnAccountUpdate_ShouldSetModifiedFlag()
+public async Task MyPlugin_OnAccountUpdate_ShouldSetModifiedFlag()
 {
     // Arrange
     var builder = new FakePluginContextBuilder();
@@ -564,7 +564,7 @@ public void MyPlugin_OnAccountUpdate_ShouldSetModifiedFlag()
 
     // Assert
     var updated = service.Retrieve("account", account.Id, new ColumnSet(true));
-    Assert.That(updated["modifiedflag"], Is.True);
+    await Assert.That((bool)updated["modifiedflag"]).IsTrue();
 }
 ```
 
@@ -720,8 +720,8 @@ dotnet build --configuration Release
 # Run all tests
 dotnet test --configuration Release
 
-# Run specific tests by filter
-dotnet test --filter "Name~QueryProcessor"
+# Run specific tests by filter (TUnit uses --treenode-filter)
+dotnet test --treenode-filter "/*/*/*/QueryProcessor*"
 
 # Run tests with detailed output
 dotnet test -- --output Detailed
