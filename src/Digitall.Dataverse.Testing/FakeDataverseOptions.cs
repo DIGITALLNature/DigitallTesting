@@ -9,4 +9,5 @@ public class FakeDataverseOptions
     public Guid BusinessUnitId { get; set; } = Guid.Empty;
     public DateOnly? FiscalYearStart { get; set; }
     public int MaxRetrieveCount { get; set; } = 5000;
+    public string OrganizationVersion { get; set; } = "9.2.0.0";
 }
