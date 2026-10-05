@@ -13,10 +13,15 @@ public class UpdateMultipleFake : OrganizationRequestFake<UpdateMultipleRequest,
 
         MultipleTargetsValidator.Validate(organizationRequest.Targets);
 
-        foreach (var target in organizationRequest.Targets.Entities)
+        fakeOrganizationService.ExecuteAtomic(() =>
         {
-            fakeOrganizationService.UpdateCore(target);
-        }
+            foreach (var target in organizationRequest.Targets.Entities)
+            {
+                fakeOrganizationService.UpdateCore(target);
+            }
+
+            return true;
+        });
 
         return new UpdateMultipleResponse
         {

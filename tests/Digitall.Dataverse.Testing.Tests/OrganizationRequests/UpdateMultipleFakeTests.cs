@@ -52,6 +52,32 @@ public class UpdateMultipleFakeTests
     }
 
     [Test]
+    public async Task Execute_LaterTargetMissing_RollsBackEarlierUpdates()
+    {
+        var id = Guid.NewGuid();
+        _sut.Add(new Entity("account") { Id = id, ["name"] = "Old" });
+
+        var request = new UpdateMultipleRequest
+        {
+            Targets = new EntityCollection
+            {
+                EntityName = "account",
+                Entities =
+                {
+                    new Entity("account") { Id = id, ["name"] = "New" },
+                    new Entity("account") { Id = Guid.NewGuid(), ["name"] = "Ghost" }
+                }
+            }
+        };
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+
+        var account = _sut.Retrieve("account", id, new ColumnSet("name"));
+        await Assert.That(account.GetAttributeValue<string>("name")).IsEqualTo("Old");
+    }
+
+    [Test]
     public async Task Execute_NonExistingRecord_ThrowsFaultException()
     {
         var request = new UpdateMultipleRequest

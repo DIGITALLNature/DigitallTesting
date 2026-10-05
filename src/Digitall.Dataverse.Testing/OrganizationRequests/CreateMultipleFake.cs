@@ -14,20 +14,25 @@ public class CreateMultipleFake : OrganizationRequestFake<CreateMultipleRequest,
 
         MultipleTargetsValidator.Validate(organizationRequest.Targets);
 
-        var ids = new List<Guid>();
-
-        foreach (var target in organizationRequest.Targets.Entities)
+        var ids = fakeOrganizationService.ExecuteAtomic(() =>
         {
-            var guid = fakeOrganizationService.CreateCore(target);
+            var created = new List<Guid>();
 
-            // Deep insert: create sub-entities from RelatedEntities
-            if (target.RelatedEntities.Count > 0)
+            foreach (var target in organizationRequest.Targets.Entities)
             {
-                DeepInsertProcessor.Process(target.LogicalName, guid, target.RelatedEntities, fakeOrganizationService);
+                var guid = fakeOrganizationService.CreateCore(target);
+
+                // Deep insert: create sub-entities from RelatedEntities
+                if (target.RelatedEntities.Count > 0)
+                {
+                    DeepInsertProcessor.Process(target.LogicalName, guid, target.RelatedEntities, fakeOrganizationService);
+                }
+
+                created.Add(guid);
             }
 
-            ids.Add(guid);
-        }
+            return created;
+        });
 
         return new CreateMultipleResponse
         {

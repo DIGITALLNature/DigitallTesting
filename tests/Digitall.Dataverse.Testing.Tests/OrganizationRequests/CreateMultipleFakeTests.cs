@@ -106,6 +106,60 @@ public class CreateMultipleFakeTests
     }
 
     [Test]
+    public async Task Execute_LaterTargetFails_RollsBackEarlierCreates()
+    {
+        var existingId = Guid.NewGuid();
+        _sut.Add(new Entity("account") { Id = existingId });
+
+        var request = new CreateMultipleRequest
+        {
+            Targets = new EntityCollection
+            {
+                EntityName = "account",
+                Entities =
+                {
+                    new Entity("account") { Id = Guid.NewGuid(), ["name"] = "First" },
+                    new Entity("account") { Id = existingId, ["name"] = "Duplicate" }
+                }
+            }
+        };
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+        await Assert.That(_sut.CreateQuery("account").ToList()).Count().IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Execute_DeepInsertFails_RollsBackParentAndEarlierTargets()
+    {
+        var request = new CreateMultipleRequest
+        {
+            Targets = new EntityCollection
+            {
+                EntityName = "account",
+                Entities =
+                {
+                    new Entity("account") { ["name"] = "First" },
+                    new Entity("account")
+                    {
+                        ["name"] = "Second",
+                        RelatedEntities =
+                        {
+                            [new Relationship("unregistered_relationship")] =
+                                new EntityCollection([new Entity("contact") { ["lastname"] = "Smith" }])
+                        }
+                    }
+                }
+            }
+        };
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+        await Assert.That(_sut.CreateQuery("account").ToList()).Count().IsEqualTo(0);
+        await Assert.That(_sut.CreateQuery("contact").ToList()).Count().IsEqualTo(0);
+    }
+
+    [Test]
     public async Task Execute_WithRelatedEntities_PerformsDeepInsert()
     {
         _sut.State.Relationships["contact_customer_accounts"] = new OneToManyRelationshipMetadata

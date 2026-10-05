@@ -55,6 +55,30 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
     /// </summary>
     internal bool EntityExists(string logicalName, Guid id) => ServiceState.TryGetValue(logicalName, out var entities) && entities.ContainsKey(id);
 
+    /// <summary>
+    ///     Runs <paramref name="action"/> and restores the record state if it throws.
+    ///     Stored entities are replaced, never mutated in place, so a shallow snapshot is sufficient.
+    /// </summary>
+    internal T ExecuteAtomic<T>(Func<T> action)
+    {
+        var snapshot = ServiceState.ToDictionary(table => table.Key, table => new Dictionary<Guid, Entity>(table.Value));
+
+        try
+        {
+            return action();
+        }
+        catch
+        {
+            ServiceState.Clear();
+            foreach (var (logicalName, rows) in snapshot)
+            {
+                ServiceState[logicalName] = rows;
+            }
+
+            throw;
+        }
+    }
+
     public void AddRequest(IOrganizationRequestFake fake)
     {
         OrganizationRequestFakes.Add(fake.ForType, fake);
