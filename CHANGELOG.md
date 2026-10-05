@@ -1,3 +1,10 @@
+# [1.2.0-beta.2](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* trigger release with qodana fixes ([372cf21](https://github.com/DIGITALLNature/DigitallTesting/commit/372cf21a2d4d70db4dc7d4498e01c98c7b3f6285))
+
 # [1.2.0-beta.1](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.1-beta.1...v1.2.0-beta.1) (2026-10-05)
 
 
