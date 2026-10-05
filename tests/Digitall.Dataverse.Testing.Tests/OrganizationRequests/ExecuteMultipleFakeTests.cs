@@ -202,23 +202,53 @@ public class ExecuteMultipleFakeTests
     }
 
     [Test]
-    public async Task Execute_NestedExecuteMultiple_ThrowsFaultException()
+    public async Task Execute_NestedExecuteMultiple_FaultsOnlyThatItem()
     {
         var request = new ExecuteMultipleRequest
         {
             Requests =
             [
+                new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid(), ["name"] = "First" } },
                 new ExecuteMultipleRequest
                 {
                     Requests = [],
                     Settings = new ExecuteMultipleSettings()
-                }
+                },
+                new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid(), ["name"] = "Third" } }
             ],
-            Settings = new ExecuteMultipleSettings()
+            Settings = new ExecuteMultipleSettings { ContinueOnError = true, ReturnResponses = true }
         };
 
-        await Assert.That(() => _sut.Execute(request))
-            .Throws<FaultException<OrganizationServiceFault>>();
+        var response = (ExecuteMultipleResponse)_sut.Execute(request);
+
+        await Assert.That(response.IsFaulted).IsTrue();
+        await Assert.That(response.Responses).Count().IsEqualTo(3);
+        await Assert.That(response.Responses[0].Response).IsTypeOf<CreateResponse>();
+        await Assert.That(response.Responses[1].RequestIndex).IsEqualTo(1);
+        await Assert.That(response.Responses[1].Fault).IsNotNull();
+        await Assert.That(response.Responses[2].Response).IsTypeOf<CreateResponse>();
+        await Assert.That(_sut.CreateQuery("account").ToList()).Count().IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Execute_NestedExecuteMultiple_ContinueOnErrorFalse_StopsAtNestedItem()
+    {
+        var request = new ExecuteMultipleRequest
+        {
+            Requests =
+            [
+                new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid() } },
+                new ExecuteMultipleRequest { Requests = [], Settings = new ExecuteMultipleSettings() },
+                new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid() } }
+            ],
+            Settings = new ExecuteMultipleSettings { ContinueOnError = false, ReturnResponses = true }
+        };
+
+        var response = (ExecuteMultipleResponse)_sut.Execute(request);
+
+        await Assert.That(response.IsFaulted).IsTrue();
+        await Assert.That(response.Responses).Count().IsEqualTo(2);
+        await Assert.That(_sut.CreateQuery("account").ToList()).Count().IsEqualTo(1);
     }
 
     [Test]

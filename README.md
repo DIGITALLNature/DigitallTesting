@@ -426,7 +426,7 @@ Built-in fakes for common Dataverse operations:
 Notes on the bulk fakes:
 
 - `CreateMultipleFake` / `UpdateMultipleFake` require all targets to share one entity type (and to match `Targets.EntityName` if set). Violations fault before any record is touched; a failure on an individual record (e.g. duplicate ID, missing record) is **not** rolled back, so earlier records stay created/updated.
-- `ExecuteMultipleFake` requires `Settings` and `Requests` and rejects nested `ExecuteMultipleRequest`s with a fault. Faults of individual requests are collected in the response (also when `ReturnResponses` is `false`); non-fault exceptions are captured as a fault with the exception message. Nothing is rolled back — use `ExecuteTransactionRequest` for that.
+- `ExecuteMultipleFake` requires `Settings` and `Requests` and rejects nested `ExecuteMultipleRequest`s with a fault for that request item (the rest of the batch follows `ContinueOnError`). Faults of individual requests are collected in the response (also when `ReturnResponses` is `false`); non-fault exceptions are captured as a fault with the exception message. Nothing is rolled back — use `ExecuteTransactionRequest` for that.
 
 ### Custom Request Fakes
 

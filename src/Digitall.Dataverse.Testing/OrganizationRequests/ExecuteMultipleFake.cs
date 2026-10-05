@@ -24,11 +24,6 @@ public class ExecuteMultipleFake : OrganizationRequestFake<ExecuteMultipleReques
             ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "Required field 'Requests' is missing");
         }
 
-        if (organizationRequest.Requests.Any(r => r is ExecuteMultipleRequest))
-        {
-            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "ExecuteMultipleRequest cannot be nested inside another ExecuteMultipleRequest");
-        }
-
         var continueOnError = organizationRequest.Settings.ContinueOnError;
         var returnResponses = organizationRequest.Settings.ReturnResponses;
 
@@ -40,6 +35,12 @@ public class ExecuteMultipleFake : OrganizationRequestFake<ExecuteMultipleReques
             var request = organizationRequest.Requests[i];
             try
             {
+                // Dataverse faults only the nested item, not the whole batch
+                if (request is ExecuteMultipleRequest)
+                {
+                    ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "ExecuteMultipleRequest cannot be nested inside another ExecuteMultipleRequest");
+                }
+
                 var response = fakeOrganizationService.Execute(request);
                 if (returnResponses)
                 {
