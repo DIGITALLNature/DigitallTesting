@@ -21,7 +21,7 @@ public class UpsertFake : OrganizationRequestFake<UpsertRequest, UpsertResponse>
 
         // Id takes precedence; alternate keys are only used when no Id is given
         var existingId = entityId != Guid.Empty
-            ? fakeOrganizationService.EntityExists(entityLogicalName, entityId) ? entityId : (Guid?)null
+            ? fakeOrganizationService.EntityExists(entityLogicalName, entityId) ? entityId : null
             : fakeOrganizationService.FindEntityByAlternateKey(entityLogicalName, target.KeyAttributes)?.Id;
 
         var recordCreated = existingId is null;

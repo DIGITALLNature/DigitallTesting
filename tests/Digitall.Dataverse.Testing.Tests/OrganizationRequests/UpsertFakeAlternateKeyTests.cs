@@ -44,9 +44,11 @@ public class UpsertFakeAlternateKeyTests
             ["name"] = "Before"
         });
 
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = "ACC-001";
-        target["name"] = "After";
+        var target = new Entity("account")
+        {
+            ["name"] = "After",
+            KeyAttributes = { { "accountnumber", "ACC-001" } }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });
@@ -84,10 +86,15 @@ public class UpsertFakeAlternateKeyTests
             ["name"] = "London Branch"
         });
 
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = "ACC-001";
-        target.KeyAttributes["address1_city"] = "Berlin";
-        target["name"] = "Berlin Updated";
+        var target = new Entity("account")
+        {
+            ["name"] = "Berlin Updated",
+            KeyAttributes =
+            {
+                { "accountnumber", "ACC-001" },
+                { "address1_city", "Berlin" }
+            }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });
@@ -107,9 +114,11 @@ public class UpsertFakeAlternateKeyTests
     public async Task Upsert_AlternateKey_NonExistingRecord_CreatesRecordAndPersistsKeyValues()
     {
         // Arrange
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = "ACC-NEW";
-        target["name"] = "New Account";
+        var target = new Entity("account")
+        {
+            ["name"] = "New Account",
+            KeyAttributes = { { "accountnumber", "ACC-NEW" } }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });
@@ -130,18 +139,22 @@ public class UpsertFakeAlternateKeyTests
     public async Task Upsert_AlternateKey_RepeatedRequest_UpdatesSameRecordWithoutDuplicate()
     {
         // Arrange - first upsert (creates)
-        var target1 = new Entity("account");
-        target1.KeyAttributes["accountnumber"] = "ACC-REP";
-        target1["name"] = "Initial";
+        var target1 = new Entity("account")
+        {
+            ["name"] = "Initial",
+            KeyAttributes = { { "accountnumber", "ACC-REP" } }
+        };
 
         var response1 = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target1 });
         await Assert.That((bool)response1.Results["RecordCreated"]).IsTrue();
         var initialId = ((EntityReference)response1.Results["Target"]).Id;
 
         // Act - second upsert with same key (updates)
-        var target2 = new Entity("account");
-        target2.KeyAttributes["accountnumber"] = "ACC-REP";
-        target2["name"] = "Repeated";
+        var target2 = new Entity("account")
+        {
+            ["name"] = "Repeated",
+            KeyAttributes = { { "accountnumber", "ACC-REP" } }
+        };
 
         var response2 = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target2 });
 
@@ -168,10 +181,12 @@ public class UpsertFakeAlternateKeyTests
             ["name"] = "Before"
         });
 
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = "ACC-001";
-        target["accountnumber"] = "ACC-CHANGED";
-        target["name"] = "After";
+        var target = new Entity("account")
+        {
+            ["accountnumber"] = "ACC-CHANGED",
+            ["name"] = "After",
+            KeyAttributes = { { "accountnumber", "ACC-001" } }
+        };
 
         // Act
         _sut.Execute(new UpsertRequest { Target = target });
@@ -186,9 +201,11 @@ public class UpsertFakeAlternateKeyTests
     public async Task Upsert_AlternateKey_NonExistingRecord_UsesKeyValueFromAttributesWhenPresent()
     {
         // Arrange
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = "ACC-KEY";
-        target["accountnumber"] = "ACC-ATTR";
+        var target = new Entity("account")
+        {
+            ["accountnumber"] = "ACC-ATTR",
+            KeyAttributes = { { "accountnumber", "ACC-KEY" } }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });
@@ -208,9 +225,11 @@ public class UpsertFakeAlternateKeyTests
         _sut.Add(new Entity("account", keyMatchId) { ["accountnumber"] = "ACC-001", ["name"] = "ByKey" });
         _sut.Add(new Entity("account", idMatchId) { ["accountnumber"] = "ACC-002", ["name"] = "ById" });
 
-        var target = new Entity("account", idMatchId);
-        target.KeyAttributes["accountnumber"] = "ACC-001";
-        target["name"] = "Updated";
+        var target = new Entity("account", idMatchId)
+        {
+            ["name"] = "Updated",
+            KeyAttributes = { { "accountnumber", "ACC-001" } }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });
@@ -255,9 +274,11 @@ public class UpsertFakeAlternateKeyTests
             ["name"] = "Before"
         });
 
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = "ACC-001";
-        target["name"] = "After";
+        var target = new Entity("account")
+        {
+            ["name"] = "After",
+            KeyAttributes = { { "accountnumber", "ACC-001" } }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });
@@ -281,13 +302,16 @@ public class UpsertFakeAlternateKeyTests
             ["name"] = "Parent"
         });
 
-        var target = new Entity("account");
-        target.KeyAttributes["accountnumber"] = "ACC-DEEP";
-        target["name"] = "Parent Updated";
-
         var contact = new Entity("contact") { ["lastname"] = "Child" };
-        target.RelatedEntities[new Relationship("contact_customer_accounts")] =
-            new EntityCollection([contact]);
+        var target = new Entity("account")
+        {
+            ["name"] = "Parent Updated",
+            KeyAttributes = { { "accountnumber", "ACC-DEEP" } },
+            RelatedEntities =
+            {
+                [new Relationship("contact_customer_accounts")] = new EntityCollection([contact])
+            }
+        };
 
         // Act
         var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });

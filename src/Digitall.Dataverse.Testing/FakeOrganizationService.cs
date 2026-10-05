@@ -524,7 +524,7 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
 
     internal Entity? FindEntityByAlternateKey(string entityName, KeyAttributeCollection keys)
     {
-        if (keys.Count == 0 || !ServiceState.TryGetValue(entityName, out var value) || value == null)
+        if (keys.Count == 0 || !ServiceState.TryGetValue(entityName, out var value))
         {
             return null;
         }

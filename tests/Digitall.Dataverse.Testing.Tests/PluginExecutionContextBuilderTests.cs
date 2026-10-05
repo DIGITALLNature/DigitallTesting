@@ -1,6 +1,5 @@
 using Digitall.Dataverse.Testing.Extensions;
 using Digitall.Dataverse.Testing.Tests.Fixtures;
-using Digitall.Dataverse.Testing.Tests.Fixtures.SamplePlugin;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.PluginTelemetry;
 using Microsoft.Xrm.Sdk.Query;

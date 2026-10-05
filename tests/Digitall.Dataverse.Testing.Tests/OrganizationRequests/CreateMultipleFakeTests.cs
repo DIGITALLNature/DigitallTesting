@@ -117,9 +117,15 @@ public class CreateMultipleFakeTests
             ReferencingAttribute = "parentcustomerid"
         };
 
-        var account = new Entity("account") { ["name"] = "Contoso" };
-        account.RelatedEntities[new Relationship("contact_customer_accounts")] =
-            new EntityCollection([new Entity("contact") { ["lastname"] = "Smith" }]);
+        var account = new Entity("account")
+        {
+            ["name"] = "Contoso",
+            RelatedEntities =
+            {
+                [new Relationship("contact_customer_accounts")] =
+                    new EntityCollection([new Entity("contact") { ["lastname"] = "Smith" }])
+            }
+        };
 
         var request = new CreateMultipleRequest
         {

@@ -5,6 +5,7 @@ using Microsoft.Xrm.Sdk;
 
 namespace Digitall.Dataverse.Testing.Tests.Fixtures.SamplePlugin;
 
+// ReSharper disable once UnusedType.Global
 public class TestPlugin : IPlugin
 {
     public void Execute(IServiceProvider serviceProvider)

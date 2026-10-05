@@ -70,8 +70,11 @@ public class FakeOrganizationServiceAlternateKeyTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var seeded = new Entity("account", id) { ["name"] = "Seeded" };
-        seeded.KeyAttributes["accountnumber"] = "ACC-001";
+        var seeded = new Entity("account", id)
+        {
+            ["name"] = "Seeded",
+            KeyAttributes = { { "accountnumber", "ACC-001" } }
+        };
         _sut.Add(seeded);
 
         // Act
