@@ -2,6 +2,7 @@
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
 using Digitall.Dataverse.Testing.Errors;
+using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Query;
@@ -12,6 +13,9 @@ public class DisassociateFake : OrganizationRequestFake<DisassociateRequest, Dis
 {
     public override DisassociateResponse Execute(DisassociateRequest organizationRequest, FakeOrganizationService fakeOrganizationService)
     {
+        ArgumentNullException.ThrowIfNull(organizationRequest);
+        ArgumentNullException.ThrowIfNull(fakeOrganizationService);
+
         var entityName = organizationRequest.Target.LogicalName;
         var entityId = organizationRequest.Target.Id;
         var relationship = organizationRequest.Relationship;
@@ -26,27 +30,56 @@ public class DisassociateFake : OrganizationRequestFake<DisassociateRequest, Dis
 
         foreach (var relatedEntity in relatedEntities)
         {
-            if (relationshipMetadata is ManyToManyRelationshipMetadata manyToManyRelationshipMetadata)
+            switch (relationshipMetadata)
             {
-                var isFrom1To2 = entityName == manyToManyRelationshipMetadata.Entity1LogicalName;
-                var fromAttribute = isFrom1To2 ? manyToManyRelationshipMetadata.Entity1IntersectAttribute : manyToManyRelationshipMetadata.Entity2IntersectAttribute;
-                var toAttribute = isFrom1To2 ? manyToManyRelationshipMetadata.Entity2IntersectAttribute : manyToManyRelationshipMetadata.Entity1IntersectAttribute;
+                case ManyToManyRelationshipMetadata manyToManyRelationshipMetadata:
+                    {
+                        var isFrom1To2 = entityName == manyToManyRelationshipMetadata.Entity1LogicalName;
+                        var fromAttribute = isFrom1To2 ? manyToManyRelationshipMetadata.Entity1IntersectAttribute : manyToManyRelationshipMetadata.Entity2IntersectAttribute;
+                        var toAttribute = isFrom1To2 ? manyToManyRelationshipMetadata.Entity2IntersectAttribute : manyToManyRelationshipMetadata.Entity1IntersectAttribute;
 
-                var query = new QueryExpression(manyToManyRelationshipMetadata.IntersectEntityName) { ColumnSet = new ColumnSet(true), Criteria = new FilterExpression(LogicalOperator.And) };
+                        var query = new QueryExpression(manyToManyRelationshipMetadata.IntersectEntityName) { ColumnSet = new ColumnSet(true), Criteria = new FilterExpression(LogicalOperator.And) };
 
-                query.Criteria.AddCondition(new ConditionExpression(fromAttribute, ConditionOperator.Equal, entityId));
-                query.Criteria.AddCondition(new ConditionExpression(toAttribute, ConditionOperator.Equal, relatedEntity.Id));
+                        query.Criteria.AddCondition(new ConditionExpression(fromAttribute, ConditionOperator.Equal, entityId));
+                        query.Criteria.AddCondition(new ConditionExpression(toAttribute, ConditionOperator.Equal, relatedEntity.Id));
 
-                var results = fakeOrganizationService.RetrieveMultiple(query);
+                        var results = fakeOrganizationService.RetrieveMultiple(query);
 
-                if (results.Entities.Count == 1)
-                {
-                    fakeOrganizationService.Delete(manyToManyRelationshipMetadata.IntersectEntityName, results.Entities.First().Id);
-                }
-            }
-            else
-            {
-                ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, $"Disassociate only supports ManyToMany relationships; '{relationship.SchemaName}' is of type '{relationshipMetadata.GetType().Name}'");
+                        if (results.Entities.Count == 1)
+                        {
+                            fakeOrganizationService.Delete(manyToManyRelationshipMetadata.IntersectEntityName, results.Entities.First().Id);
+                        }
+                        break;
+                    }
+                case OneToManyRelationshipMetadata oneToMany:
+                    {
+                        if (entityName == oneToMany.ReferencedEntity)
+                        {
+                            var entityToUpdate = new Entity(relatedEntity.LogicalName, relatedEntity.Id)
+                            {
+                                [oneToMany.ReferencingAttribute] = null
+                            };
+                            fakeOrganizationService.Update(entityToUpdate);
+                        }
+                        else if (entityName == oneToMany.ReferencingEntity)
+                        {
+                            var entityToUpdate = new Entity(entityName, entityId)
+                            {
+                                [oneToMany.ReferencingAttribute] = null
+                            };
+                            fakeOrganizationService.Update(entityToUpdate);
+                        }
+                        else
+                        {
+                            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument,
+                                $"Relationship '{oneToMany.SchemaName}' is between '{oneToMany.ReferencedEntity}' and '{oneToMany.ReferencingEntity}', but target entity is '{entityName}'");
+                        }
+                        break;
+                    }
+                default:
+                    ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument,
+                        $"Relationship metadata type '{relationshipMetadata.GetType().Name}' is not supported for Disassociate");
+                    break;
             }
         }
 

@@ -7,6 +7,7 @@ using Digitall.Dataverse.Testing.OrganizationRequests;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
+using Microsoft.Xrm.Sdk.Query;
 
 namespace Digitall.Dataverse.Testing.Tests.OrganizationRequests;
 
@@ -126,10 +127,107 @@ public class DisassociateFakeTests
     }
 
     [Test]
-    public async Task Execute_NonManyToManyRelationship_ThrowsFault()
+    public async Task Execute_OneToMany_ClearsLookupOnRelatedEntity()
     {
         var accountId = Guid.NewGuid();
+        var contactId = Guid.NewGuid();
         _sut.Add(new Entity("account") { Id = accountId });
+        _sut.Add(new Entity("contact")
+        {
+            Id = contactId,
+            ["parentcustomerid"] = new EntityReference("account", accountId)
+        });
+
+        _sut.AddRelationship(new OneToManyRelationshipMetadata
+        {
+            SchemaName = "account_contacts_1n",
+            ReferencedEntity = "account",
+            ReferencingEntity = "contact",
+            ReferencingAttribute = "parentcustomerid"
+        });
+
+        _sut.Execute(new DisassociateRequest
+        {
+            Target = new EntityReference("account", accountId),
+            Relationship = new Relationship("account_contacts_1n"),
+            RelatedEntities = [new("contact", contactId)]
+        });
+
+        var contact = _sut.Retrieve("contact", contactId, new ColumnSet("parentcustomerid"));
+        await Assert.That(contact.GetAttributeValue<EntityReference>("parentcustomerid")).IsNull();
+    }
+
+    [Test]
+    public async Task Execute_OneToMany_FromReferencingSide_ClearsLookupOnTarget()
+    {
+        var accountId = Guid.NewGuid();
+        var contactId = Guid.NewGuid();
+        _sut.Add(new Entity("account") { Id = accountId });
+        _sut.Add(new Entity("contact")
+        {
+            Id = contactId,
+            ["parentcustomerid"] = new EntityReference("account", accountId)
+        });
+
+        _sut.AddRelationship(new OneToManyRelationshipMetadata
+        {
+            SchemaName = "account_contacts_1n",
+            ReferencedEntity = "account",
+            ReferencingEntity = "contact",
+            ReferencingAttribute = "parentcustomerid"
+        });
+
+        _sut.Execute(new DisassociateRequest
+        {
+            Target = new EntityReference("contact", contactId),
+            Relationship = new Relationship("account_contacts_1n"),
+            RelatedEntities = [new("account", accountId)]
+        });
+
+        var contact = _sut.Retrieve("contact", contactId, new ColumnSet("parentcustomerid"));
+        await Assert.That(contact.GetAttributeValue<EntityReference>("parentcustomerid")).IsNull();
+    }
+
+    [Test]
+    public async Task Execute_OneToMany_MultipleRelatedEntities_ClearsAll()
+    {
+        var accountId = Guid.NewGuid();
+        var contactId1 = Guid.NewGuid();
+        var contactId2 = Guid.NewGuid();
+        _sut.Add(new Entity("account") { Id = accountId });
+        _sut.Add(new Entity("contact") { Id = contactId1, ["parentcustomerid"] = new EntityReference("account", accountId) });
+        _sut.Add(new Entity("contact") { Id = contactId2, ["parentcustomerid"] = new EntityReference("account", accountId) });
+
+        _sut.AddRelationship(new OneToManyRelationshipMetadata
+        {
+            SchemaName = "account_contacts_1n",
+            ReferencedEntity = "account",
+            ReferencingEntity = "contact",
+            ReferencingAttribute = "parentcustomerid"
+        });
+
+        _sut.Execute(new DisassociateRequest
+        {
+            Target = new EntityReference("account", accountId),
+            Relationship = new Relationship("account_contacts_1n"),
+            RelatedEntities =
+            [
+                new("contact", contactId1),
+                new("contact", contactId2)
+            ]
+        });
+
+        var c1 = _sut.Retrieve("contact", contactId1, new ColumnSet("parentcustomerid"));
+        var c2 = _sut.Retrieve("contact", contactId2, new ColumnSet("parentcustomerid"));
+        await Assert.That(c1.GetAttributeValue<EntityReference>("parentcustomerid")).IsNull();
+        await Assert.That(c2.GetAttributeValue<EntityReference>("parentcustomerid")).IsNull();
+    }
+
+    [Test]
+    public async Task Execute_OneToMany_MismatchedTargetEntity_ThrowsFault()
+    {
+        var leadId = Guid.NewGuid();
+        _sut.Add(new Entity("lead") { Id = leadId });
 
         _sut.AddRelationship(new OneToManyRelationshipMetadata
         {
@@ -141,7 +239,7 @@ public class DisassociateFakeTests
 
         void Action() => _sut.Execute(new DisassociateRequest
         {
-            Target = new EntityReference("account", accountId),
+            Target = new EntityReference("lead", leadId),
             Relationship = new Relationship("account_contacts_1n"),
             RelatedEntities = [new("contact", Guid.NewGuid())]
         });
