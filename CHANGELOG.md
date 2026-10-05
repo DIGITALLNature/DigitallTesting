@@ -1,3 +1,17 @@
+# [1.3.0-beta.1](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.2.0...v1.3.0-beta.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **metadata:** throw FaultException for missing entity or attribute metadata ([0cbb15d](https://github.com/DIGITALLNature/DigitallTesting/commit/0cbb15d6159042ff3645eec5d71700c0d2d24b4b))
+* **requests:** ensure ExecuteTransaction rolls back state on failure ([76b21e3](https://github.com/DIGITALLNature/DigitallTesting/commit/76b21e3f66c1eb640e4d743aef99421e7c35bb4d))
+* **state:** use case-insensitive string comparison for state dictionaries ([8ae6617](https://github.com/DIGITALLNature/DigitallTesting/commit/8ae661702c0da768436b5583076149003df28099))
+
+
+### Features
+
+* **relationships:** support 1:N disassociation in DisassociateFake ([27e5dea](https://github.com/DIGITALLNature/DigitallTesting/commit/27e5deaad488beebd86cf5b8fdacbd57c02cdb8f))
+
 # [1.2.0](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.0...v1.2.0) (2026-10-05)
 
 
