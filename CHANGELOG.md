@@ -1,3 +1,10 @@
+## [1.1.1-beta.1](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.0...v1.1.1-beta.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **requests:** support alternate keys in UpsertFake ([fce48af](https://github.com/DIGITALLNature/DigitallTesting/commit/fce48af73a45ba1e9ee05eb0baa669021a83606f)), closes [#49](https://github.com/DIGITALLNature/DigitallTesting/issues/49)
+
 # [1.1.0](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.0.0...v1.1.0) (2026-07-01)
 
 
