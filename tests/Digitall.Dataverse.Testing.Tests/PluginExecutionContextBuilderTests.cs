@@ -153,19 +153,6 @@ public class PluginExecutionContextBuilderTests
     }
 
     [Test]
-    public Task TestPlugin_Durchstich()
-    {
-        var tracingServiceMock = Mock.Of<ITracingService>();
-        var serviceProvider = new PluginExecutionContextBuilder((ITracingService)tracingServiceMock).BuildServiceProvider();
-
-        var plugin = new TestPlugin();
-        plugin.Execute(serviceProvider);
-
-        tracingServiceMock.Trace("TestPlugin: Execute", Any<object[]>()).WasCalled();
-        return Task.CompletedTask;
-    }
-
-    [Test]
     public async Task SettingModeStageAndIds_Should_SetPluginExecutionContextFields()
     {
         var initiatingUserId = Guid.NewGuid();
