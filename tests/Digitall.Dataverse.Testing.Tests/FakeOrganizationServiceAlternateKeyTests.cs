@@ -66,6 +66,19 @@ public class FakeOrganizationServiceAlternateKeyTests
     }
 
     [Test]
+    public async Task RetrieveWithAlternateKey_NullKeyValue_DoesNotMatchStoredNull()
+    {
+        // Arrange
+        _sut.Add(new Entity("account", Guid.NewGuid()) { ["accountnumber"] = null });
+        _sut.Add(new Entity("account", Guid.NewGuid()) { ["accountnumber"] = null });
+        var keys = new KeyAttributeCollection { { "accountnumber", null! } };
+
+        // Act & Assert
+        await Assert.That(() => _sut.RetrieveWithAlternateKey("account", keys, new ColumnSet(true)))
+            .Throws<FaultException<OrganizationServiceFault>>();
+    }
+
+    [Test]
     public async Task RetrieveWithAlternateKey_RecordSeededWithKeyAttributesOnly_ReturnsRecord()
     {
         // Arrange

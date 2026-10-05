@@ -241,6 +241,24 @@ public class UpsertFakeAlternateKeyTests
     }
 
     [Test]
+    public async Task Upsert_AlternateKey_NullKeyValue_DoesNotMatchStoredNull()
+    {
+        // Arrange
+        _sut.Add(new Entity("account", Guid.NewGuid()) { ["accountnumber"] = null, ["name"] = "Existing" });
+
+        var target = new Entity("account");
+        target.KeyAttributes["accountnumber"] = null!;
+        target["name"] = "New";
+
+        // Act
+        var response = (UpsertResponse)_sut.Execute(new UpsertRequest { Target = target });
+
+        // Assert
+        await Assert.That((bool)response.Results["RecordCreated"]).IsTrue();
+        await Assert.That(_sut.CreateQuery("account").ToList()).Count().IsEqualTo(2);
+    }
+
+    [Test]
     public async Task Upsert_IdBased_ExistingAndNew_RemainsUnchanged()
     {
         // Arrange - ID-based create

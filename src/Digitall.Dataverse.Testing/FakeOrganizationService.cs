@@ -552,7 +552,6 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
 
     private static bool KeyValueEquals(object? storedValue, object? keyValue)
     {
-        if (storedValue is null && keyValue is null) return true;
         if (storedValue is null || keyValue is null) return false;
         if (storedValue is string s1 && keyValue is string s2)
             return string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
