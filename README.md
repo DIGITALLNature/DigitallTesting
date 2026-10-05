@@ -396,9 +396,11 @@ Built-in fakes for common Dataverse operations:
 | Request Type | Fake Class | Description |
 |-------------|-----------|-------------|
 | `CreateRequest` | `CreateFake` | Entity creation with duplicate detection and deep insert |
+| `CreateMultipleRequest` | `CreateMultipleFake` | Bulk entity creation with deep insert |
 | `RetrieveRequest` | `RetrieveFake` | Entity retrieval with column projection |
 | `RetrieveMultipleRequest` | `RetrieveMultipleFake` | Query execution pipeline |
 | `UpdateRequest` | `UpdateFake` | Entity updates with existence validation |
+| `UpdateMultipleRequest` | `UpdateMultipleFake` | Bulk entity updates with existence validation |
 | `DeleteRequest` | `DeleteFake` | Entity deletion |
 | `UpsertRequest` | `UpsertFake` | Create-or-update semantics with alternate keys and deep insert |
 | `AssociateRequest` | `AssociateFake` | Relationship association |
