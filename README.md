@@ -95,7 +95,7 @@ using Digitall.Dataverse.Testing;
 public class AccountTests
 {
     [Test]
-    public void Should_CreateAndRetrieveEntity()
+    public async Task Should_CreateAndRetrieveEntity()
     {
         // Arrange — use the builder for a fully configured service
         var service = new FakeDataverseBuilder().GetOrganizationService();
@@ -107,7 +107,7 @@ public class AccountTests
         var retrieved = service.Retrieve("account", id, new ColumnSet("name"));
 
         // Assert
-        Assert.That(retrieved["name"], Is.EqualTo("Contoso Ltd"));
+        await Assert.That(retrieved["name"]).IsEqualTo("Contoso Ltd");
     }
 }
 ```
@@ -207,6 +207,9 @@ var service = new FakeDataverseBuilder()
 - `.WithBusinessUnitId(Guid)` — set the current business unit ID
 - `.WithMaxRetrieveCount(int)` — set the max records per page
 - `.WithFiscalYearStart(DateOnly)` — set the fiscal year start date
+- `.WithOrganizationVersion(string)` — set the Dataverse version string
+- `.WithOrganizationId(Guid)` — set the organization ID
+- `.WithOrganizationName(uniqueName, friendlyName?)` — set the organization unique and friendly name
 
 ### PluginExecutionContextBuilder
 
@@ -267,7 +270,7 @@ service.AddRequest(spy);
 service.Execute(new MyCustomRequest());
 
 // Verify
-Assert.That(spy.ReceivedRequests, Has.Count.EqualTo(1));
+await Assert.That(spy.ReceivedRequests).Count().IsEqualTo(1);
 ```
 
 ---
@@ -396,22 +399,34 @@ Built-in fakes for common Dataverse operations:
 | Request Type | Fake Class | Description |
 |-------------|-----------|-------------|
 | `CreateRequest` | `CreateFake` | Entity creation with duplicate detection and deep insert |
+| `CreateMultipleRequest` | `CreateMultipleFake` | Bulk entity creation with deep insert |
 | `RetrieveRequest` | `RetrieveFake` | Entity retrieval with column projection |
 | `RetrieveMultipleRequest` | `RetrieveMultipleFake` | Query execution pipeline |
 | `UpdateRequest` | `UpdateFake` | Entity updates with existence validation |
+| `UpdateMultipleRequest` | `UpdateMultipleFake` | Bulk entity updates with existence validation |
 | `DeleteRequest` | `DeleteFake` | Entity deletion |
-| `UpsertRequest` | `UpsertFake` | Create-or-update semantics with deep insert |
+| `UpsertRequest` | `UpsertFake` | Create-or-update semantics with alternate keys and deep insert |
 | `AssociateRequest` | `AssociateFake` | Relationship association |
 | `DisassociateRequest` | `DisassociateFake` | Relationship disassociation |
 | `SetStateRequest` | `SetStateFake` | Entity state/status changes |
 | `AssignRequest` | `AssignRequestFake` | Record ownership assignment |
 | `WhoAmIRequest` | `WhoAmIFake` | Current user identity |
+| `RetrieveVersionRequest` | `RetrieveVersionFake` | Dataverse organization version retrieval |
+| `RetrieveCurrentOrganizationRequest` | `RetrieveCurrentOrganizationFake` | Current organization details retrieval |
 | `RetrieveEntityRequest` | `RetrieveEntityFake` | Entity metadata retrieval |
 | `RetrieveAllEntitiesRequest` | `RetrieveAllEntitiesFake` | Retrieve metadata for all known entities |
+| `RetrieveAttributeRequest` | `RetrieveAttributeFake` | Attribute metadata retrieval |
+| `RetrieveRelationshipRequest` | `RetrieveRelationshipFake` | Relationship metadata retrieval by name or metadata ID |
 | `QueryExpressionToFetchXmlRequest` | `QueryExpressionToFetchXmlFake` | Convert a `QueryExpression` to FetchXml |
 | `FetchXmlToQueryExpressionRequest` | `FetchXmlToQueryExpressionFake` | Convert FetchXml to a `QueryExpression` |
 | `ExecuteTransactionRequest` | `ExecuteTransactionFake` | Batch transaction execution |
+| `ExecuteMultipleRequest` | `ExecuteMultipleFake` | Batch execution with error handling and response collection |
 | `BulkDeleteRequest` | `BulkDeleteFake` | Bulk delete operations |
+
+Notes on the bulk fakes:
+
+- `CreateMultipleFake` / `UpdateMultipleFake` require all targets to share one entity type (and to match `Targets.EntityName` if set). Violations fault before any record is touched; `CreateMultipleFake` / `UpdateMultipleFake` are atomic like Dataverse standard tables — a failure on an individual record (e.g. duplicate ID, missing record, failing deep insert) restores the state from before the request.
+- `ExecuteMultipleFake` requires `Settings` and `Requests` and rejects nested `ExecuteMultipleRequest`s with a fault for that request item (the rest of the batch follows `ContinueOnError`). Faults of individual requests are collected in the response (also when `ReturnResponses` is `false`); non-fault exceptions are captured as a fault with the exception message. Nothing is rolled back — use `ExecuteTransactionRequest` for that.
 
 ### Custom Request Fakes
 
@@ -540,7 +555,7 @@ var service = new FakeDataverseBuilder()
 
 ```csharp
 [Test]
-public void MyPlugin_OnAccountUpdate_ShouldSetModifiedFlag()
+public async Task MyPlugin_OnAccountUpdate_ShouldSetModifiedFlag()
 {
     // Arrange
     var builder = new FakePluginContextBuilder();
@@ -564,7 +579,7 @@ public void MyPlugin_OnAccountUpdate_ShouldSetModifiedFlag()
 
     // Assert
     var updated = service.Retrieve("account", account.Id, new ColumnSet(true));
-    Assert.That(updated["modifiedflag"], Is.True);
+    await Assert.That((bool)updated["modifiedflag"]).IsTrue();
 }
 ```
 
@@ -592,6 +607,12 @@ The `FakeOrganizationService` exposes a `FakeDataverseOptions` instance via the 
 | `BusinessUnitId` | `Guid` | Current business unit ID (used in `WhoAmI` and `EqualBusinessId` filters) | `Guid.Empty` |
 | `FiscalYearStart` | `DateOnly?` | Start date for fiscal year calculations | `null` (defaults to Jan 1) |
 | `MaxRetrieveCount` | `int` | Maximum records returned by `RetrieveMultiple` per page | `5000` |
+| `OrganizationVersion` | `string` | Dataverse version string returned by `RetrieveVersion` | `"9.2.0.0"` |
+| `OrganizationId` | `Guid` | Organization ID (used in `WhoAmI` and `RetrieveCurrentOrganization`) | `Guid.Empty` |
+| `OrganizationUniqueName` | `string` | Unique name of the organization | `"org"` |
+| `OrganizationFriendlyName` | `string` | Display name of the organization | `"Fake Organization"` |
+
+Options are fallbacks: data present in the fake's state takes precedence. `WhoAmI` and `RetrieveCurrentOrganization` use the `systemuser`/`businessunit`/`organization` records in state first and fall back to the options only when the record or attribute is missing.
 
 Configure via the builder:
 
@@ -663,10 +684,13 @@ DigitallTesting/
 │   │   ├── IOrganizationRequestFake.cs         # Extension interface
 │   │   ├── OrganizationRequestFake.cs          # Typed base class
 │   │   ├── CreateFake.cs
+│   │   ├── CreateMultipleFake.cs
 │   │   ├── DeepInsertProcessor.cs              # Deep insert helper
+│   │   ├── MultipleTargetsValidator.cs         # Shared *Multiple target validation
 │   │   ├── RetrieveFake.cs
 │   │   ├── RetrieveMultipleFake.cs
 │   │   ├── UpdateFake.cs
+│   │   ├── UpdateMultipleFake.cs
 │   │   ├── DeleteFake.cs
 │   │   ├── UpsertFake.cs
 │   │   ├── AssociateFake.cs
@@ -674,11 +698,16 @@ DigitallTesting/
 │   │   ├── SetStateFake.cs
 │   │   ├── AssignRequestFake.cs
 │   │   ├── WhoAmIFake.cs
+│   │   ├── RetrieveVersionFake.cs
+│   │   ├── RetrieveCurrentOrganizationFake.cs
 │   │   ├── RetrieveEntityFake.cs
 │   │   ├── RetrieveAllEntitiesFake.cs
+│   │   ├── RetrieveAttributeFake.cs
+│   │   ├── RetrieveRelationshipFake.cs
 │   │   ├── QueryExpressionToFetchXmlFake.cs
 │   │   ├── FetchXmlToQueryExpressionFake.cs
 │   │   ├── ExecuteTransactionFake.cs
+│   │   ├── ExecuteMultipleFake.cs
 │   │   └── BulkDeleteFake.cs
 │   ├── Model/                                  # Internal models
 │   │   └── Target.cs                           # Plugin target wrapper
@@ -720,8 +749,8 @@ dotnet build --configuration Release
 # Run all tests
 dotnet test --configuration Release
 
-# Run specific tests by filter
-dotnet test --filter "Name~QueryProcessor"
+# Run specific tests by filter (TUnit uses --treenode-filter)
+dotnet test --treenode-filter "/*/*/*/QueryProcessor*"
 
 # Run tests with detailed output
 dotnet test -- --output Detailed

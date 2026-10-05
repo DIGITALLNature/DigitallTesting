@@ -95,6 +95,33 @@ public static class FakeDataverseBuilderExtensions
             return builder;
         }
 
+        public TBuilder WithOrganizationVersion(string version)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(version);
+            var service = builder.GetOrganizationService();
+            service.Options.OrganizationVersion = version;
+            return builder;
+        }
+
+        public TBuilder WithOrganizationId(Guid organizationId)
+        {
+            var service = builder.GetOrganizationService();
+            service.Options.OrganizationId = organizationId;
+            return builder;
+        }
+
+        public TBuilder WithOrganizationName(string uniqueName, string? friendlyName = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(uniqueName);
+            var service = builder.GetOrganizationService();
+            service.Options.OrganizationUniqueName = uniqueName;
+            if (friendlyName != null)
+            {
+                service.Options.OrganizationFriendlyName = friendlyName;
+            }
+            return builder;
+        }
+
         /// <summary>
         /// Adds an environment variable configuration entry to the builder's organization service.
         /// Optionally adds a value override on top of the default.

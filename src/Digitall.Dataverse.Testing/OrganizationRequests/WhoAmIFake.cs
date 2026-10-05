@@ -22,7 +22,15 @@ public class WhoAmIFake : OrganizationRequestFake<WhoAmIRequest, WhoAmIResponse>
             results.Add("BusinessUnitId", buId);
 
             var orgId = GetOrganizationId(fakeOrganizationService, user, buId);
+            if (orgId == Guid.Empty)
+            {
+                orgId = fakeOrganizationService.Options.OrganizationId;
+            }
             results.Add("OrganizationId", orgId);
+        }
+        else if (fakeOrganizationService.Options.OrganizationId != Guid.Empty)
+        {
+            results.Add("OrganizationId", fakeOrganizationService.Options.OrganizationId);
         }
 
         var response = new WhoAmIResponse { Results = results };

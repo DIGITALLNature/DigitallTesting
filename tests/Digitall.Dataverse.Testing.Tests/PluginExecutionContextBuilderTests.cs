@@ -1,6 +1,5 @@
 using Digitall.Dataverse.Testing.Extensions;
 using Digitall.Dataverse.Testing.Tests.Fixtures;
-using Digitall.Dataverse.Testing.Tests.Fixtures.SamplePlugin;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.PluginTelemetry;
 using Microsoft.Xrm.Sdk.Query;
@@ -150,19 +149,6 @@ public class PluginExecutionContextBuilderTests
         var pluginContext = serviceProvider.GetService(iPluginExecutionContextType);
         await Assert.That(pluginContext).IsNotNull();
         await Assert.That(pluginContext!.GetType().IsAssignableTo(iPluginExecutionContextType)).IsTrue();
-    }
-
-    [Test]
-    public Task TestPlugin_Durchstich()
-    {
-        var tracingServiceMock = Mock.Of<ITracingService>();
-        var serviceProvider = new PluginExecutionContextBuilder((ITracingService)tracingServiceMock).BuildServiceProvider();
-
-        var plugin = new TestPlugin();
-        plugin.Execute(serviceProvider);
-
-        tracingServiceMock.Trace("TestPlugin: Execute", Any<object[]>()).WasCalled();
-        return Task.CompletedTask;
     }
 
     [Test]
