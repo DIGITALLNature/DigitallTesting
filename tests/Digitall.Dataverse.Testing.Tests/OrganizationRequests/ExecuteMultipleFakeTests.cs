@@ -1,7 +1,9 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
+using System.ServiceModel;
 using Digitall.Dataverse.Testing.OrganizationRequests;
+using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 
@@ -28,7 +30,8 @@ public class ExecuteMultipleFakeTests
                 new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid(), ["name"] = "A" } },
                 new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid(), ["name"] = "B" } },
                 new CreateRequest { Target = new Entity("contact") { Id = Guid.NewGuid(), ["name"] = "C" } }
-            ]
+            ],
+            Settings = new ExecuteMultipleSettings()
         };
 
         _sut.Execute(request);
@@ -158,23 +161,94 @@ public class ExecuteMultipleFakeTests
     }
 
     [Test]
-    public async Task Execute_NullOrEmptyRequests_ReturnsEmptyResponse()
+    public async Task Execute_EmptyRequests_ReturnsEmptyResponse()
     {
-        var requestEmpty = new ExecuteMultipleRequest
+        var request = new ExecuteMultipleRequest
         {
-            Requests = []
+            Requests = [],
+            Settings = new ExecuteMultipleSettings()
         };
-        var responseEmpty = (ExecuteMultipleResponse)_sut.Execute(requestEmpty);
-        await Assert.That(responseEmpty.IsFaulted).IsFalse();
-        await Assert.That(responseEmpty.Responses).Count().IsEqualTo(0);
 
-        var requestNull = new ExecuteMultipleRequest
+        var response = (ExecuteMultipleResponse)_sut.Execute(request);
+
+        await Assert.That(response.IsFaulted).IsFalse();
+        await Assert.That(response.Responses).Count().IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Execute_NullRequests_ThrowsFaultException()
+    {
+        var request = new ExecuteMultipleRequest
         {
-            Requests = null!
+            Requests = null!,
+            Settings = new ExecuteMultipleSettings()
         };
-        var responseNull = (ExecuteMultipleResponse)_sut.Execute(requestNull);
-        await Assert.That(responseNull.IsFaulted).IsFalse();
-        await Assert.That(responseNull.Responses).Count().IsEqualTo(0);
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+    }
+
+    [Test]
+    public async Task Execute_NullSettings_ThrowsFaultException()
+    {
+        var request = new ExecuteMultipleRequest
+        {
+            Requests = [new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid() } }]
+        };
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+        await Assert.That(_sut.CreateQuery("account").ToList()).Count().IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Execute_NestedExecuteMultiple_ThrowsFaultException()
+    {
+        var request = new ExecuteMultipleRequest
+        {
+            Requests =
+            [
+                new ExecuteMultipleRequest
+                {
+                    Requests = [],
+                    Settings = new ExecuteMultipleSettings()
+                }
+            ],
+            Settings = new ExecuteMultipleSettings()
+        };
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+    }
+
+    [Test]
+    public async Task Execute_NonFaultException_IsCapturedAsFault()
+    {
+        _sut.AddRequest(new ThrowingFake());
+
+        var request = new ExecuteMultipleRequest
+        {
+            Requests =
+            [
+                new RetrieveVersionRequest(),
+                new WhoAmIRequest(),
+                new CreateRequest { Target = new Entity("account") { Id = Guid.NewGuid() } }
+            ],
+            Settings = new ExecuteMultipleSettings { ContinueOnError = true, ReturnResponses = true }
+        };
+
+        var response = (ExecuteMultipleResponse)_sut.Execute(request);
+
+        await Assert.That(response.IsFaulted).IsTrue();
+        await Assert.That(response.Responses).Count().IsEqualTo(3);
+        await Assert.That(response.Responses[0].Fault.Message).IsEqualTo("boom");
+        await Assert.That(response.Responses[2].Response).IsTypeOf<CreateResponse>();
+    }
+
+    private sealed class ThrowingFake : OrganizationRequestFake<RetrieveVersionRequest, RetrieveVersionResponse>
+    {
+        public override RetrieveVersionResponse Execute(RetrieveVersionRequest organizationRequest, FakeOrganizationService fakeOrganizationService)
+            => throw new InvalidOperationException("boom");
     }
 
     [Test]

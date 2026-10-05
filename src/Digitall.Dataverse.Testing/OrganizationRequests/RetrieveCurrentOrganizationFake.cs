@@ -15,9 +15,8 @@ public class RetrieveCurrentOrganizationFake : OrganizationRequestFake<RetrieveC
 
         var orgEntity = fakeOrganizationService.CreateQuery("organization").FirstOrDefault();
 
-        var orgId = fakeOrganizationService.Options.OrganizationId != Guid.Empty
-            ? fakeOrganizationService.Options.OrganizationId
-            : orgEntity?.Id ?? Guid.Empty;
+        // Entity data in state wins; options are the fallback (same precedence as WhoAmI).
+        var orgId = orgEntity?.Id ?? fakeOrganizationService.Options.OrganizationId;
 
         var uniqueName = orgEntity?.GetAttributeValue<string>("uniquename")
                          ?? fakeOrganizationService.Options.OrganizationUniqueName;

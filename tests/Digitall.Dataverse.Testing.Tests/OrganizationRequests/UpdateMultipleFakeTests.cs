@@ -52,6 +52,49 @@ public class UpdateMultipleFakeTests
     }
 
     [Test]
+    public async Task Execute_NonExistingRecord_ThrowsFaultException()
+    {
+        var request = new UpdateMultipleRequest
+        {
+            Targets = new EntityCollection
+            {
+                EntityName = "account",
+                Entities = { new Entity("account") { Id = Guid.NewGuid(), ["name"] = "Ghost" } }
+            }
+        };
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+    }
+
+    [Test]
+    public async Task Execute_MixedEntityTypes_ThrowsFaultAndUpdatesNothing()
+    {
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+        _sut.Add(new Entity("account") { Id = id1, ["name"] = "Old" });
+        _sut.Add(new Entity("contact") { Id = id2, ["lastname"] = "Old" });
+
+        var request = new UpdateMultipleRequest
+        {
+            Targets = new EntityCollection
+            {
+                Entities =
+                {
+                    new Entity("account") { Id = id1, ["name"] = "New" },
+                    new Entity("contact") { Id = id2, ["lastname"] = "New" }
+                }
+            }
+        };
+
+        await Assert.That(() => _sut.Execute(request))
+            .Throws<FaultException<OrganizationServiceFault>>();
+
+        var acc = _sut.Retrieve("account", id1, new ColumnSet("name"));
+        await Assert.That(acc.GetAttributeValue<string>("name")).IsEqualTo("Old");
+    }
+
+    [Test]
     public async Task Execute_NullTargets_ThrowsFaultException()
     {
         var request = new UpdateMultipleRequest

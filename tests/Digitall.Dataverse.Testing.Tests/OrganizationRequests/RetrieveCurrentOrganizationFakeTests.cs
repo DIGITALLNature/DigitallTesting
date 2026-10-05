@@ -73,6 +73,21 @@ public class RetrieveCurrentOrganizationFakeTests
     }
 
     [Test]
+    public async Task Execute_EntityWithoutName_FallsBackToOptions()
+    {
+        var orgId = Guid.NewGuid();
+        _sut.Options.OrganizationId = Guid.NewGuid();
+        _sut.Options.OrganizationFriendlyName = "Option Name";
+        _sut.Add(new Entity("organization") { Id = orgId, ["uniquename"] = "crmprod" });
+
+        var response = (RetrieveCurrentOrganizationResponse)_sut.Execute(new RetrieveCurrentOrganizationRequest());
+
+        await Assert.That(response.Detail.OrganizationId).IsEqualTo(orgId);
+        await Assert.That(response.Detail.UniqueName).IsEqualTo("crmprod");
+        await Assert.That(response.Detail.FriendlyName).IsEqualTo("Option Name");
+    }
+
+    [Test]
     public async Task Builder_WithOrganization_SetsOptions()
     {
         var orgId = Guid.NewGuid();

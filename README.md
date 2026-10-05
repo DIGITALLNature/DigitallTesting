@@ -423,6 +423,11 @@ Built-in fakes for common Dataverse operations:
 | `ExecuteMultipleRequest` | `ExecuteMultipleFake` | Batch execution with error handling and response collection |
 | `BulkDeleteRequest` | `BulkDeleteFake` | Bulk delete operations |
 
+Notes on the bulk fakes:
+
+- `CreateMultipleFake` / `UpdateMultipleFake` require all targets to share one entity type (and to match `Targets.EntityName` if set). Violations fault before any record is touched; a failure on an individual record (e.g. duplicate ID, missing record) is **not** rolled back, so earlier records stay created/updated.
+- `ExecuteMultipleFake` requires `Settings` and `Requests` and rejects nested `ExecuteMultipleRequest`s with a fault. Faults of individual requests are collected in the response (also when `ReturnResponses` is `false`); non-fault exceptions are captured as a fault with the exception message. Nothing is rolled back — use `ExecuteTransactionRequest` for that.
+
 ### Custom Request Fakes
 
 Implement `IOrganizationRequestFake` or extend `OrganizationRequestFake<TReq, TRes>`:
@@ -607,6 +612,8 @@ The `FakeOrganizationService` exposes a `FakeDataverseOptions` instance via the 
 | `OrganizationUniqueName` | `string` | Unique name of the organization | `"org"` |
 | `OrganizationFriendlyName` | `string` | Display name of the organization | `"Fake Organization"` |
 
+Options are fallbacks: data present in the fake's state takes precedence. `WhoAmI` and `RetrieveCurrentOrganization` use the `systemuser`/`businessunit`/`organization` records in state first and fall back to the options only when the record or attribute is missing.
+
 Configure via the builder:
 
 ```csharp
@@ -677,10 +684,13 @@ DigitallTesting/
 │   │   ├── IOrganizationRequestFake.cs         # Extension interface
 │   │   ├── OrganizationRequestFake.cs          # Typed base class
 │   │   ├── CreateFake.cs
+│   │   ├── CreateMultipleFake.cs
 │   │   ├── DeepInsertProcessor.cs              # Deep insert helper
+│   │   ├── MultipleTargetsValidator.cs         # Shared *Multiple target validation
 │   │   ├── RetrieveFake.cs
 │   │   ├── RetrieveMultipleFake.cs
 │   │   ├── UpdateFake.cs
+│   │   ├── UpdateMultipleFake.cs
 │   │   ├── DeleteFake.cs
 │   │   ├── UpsertFake.cs
 │   │   ├── AssociateFake.cs
@@ -688,11 +698,16 @@ DigitallTesting/
 │   │   ├── SetStateFake.cs
 │   │   ├── AssignRequestFake.cs
 │   │   ├── WhoAmIFake.cs
+│   │   ├── RetrieveVersionFake.cs
+│   │   ├── RetrieveCurrentOrganizationFake.cs
 │   │   ├── RetrieveEntityFake.cs
 │   │   ├── RetrieveAllEntitiesFake.cs
+│   │   ├── RetrieveAttributeFake.cs
+│   │   ├── RetrieveRelationshipFake.cs
 │   │   ├── QueryExpressionToFetchXmlFake.cs
 │   │   ├── FetchXmlToQueryExpressionFake.cs
 │   │   ├── ExecuteTransactionFake.cs
+│   │   ├── ExecuteMultipleFake.cs
 │   │   └── BulkDeleteFake.cs
 │   ├── Model/                                  # Internal models
 │   │   └── Target.cs                           # Plugin target wrapper

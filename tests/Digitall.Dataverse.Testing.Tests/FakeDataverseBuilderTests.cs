@@ -110,6 +110,66 @@ public class FakeDataverseBuilderTests
     }
 
     [Test]
+    public async Task WithOrganizationVersion_Should_Set_OrganizationVersion_On_OrganizationService()
+    {
+        var service = new FakeDataverseBuilder()
+            .WithOrganizationVersion("9.2.1.1")
+            .GetOrganizationService();
+
+        await Assert.That(service.Options.OrganizationVersion).IsEqualTo("9.2.1.1");
+    }
+
+    [Test]
+    public async Task WithOrganizationVersion_Should_Throw_On_Blank()
+    {
+        var builder = new FakeDataverseBuilder();
+
+        await Assert.That(() => builder.WithOrganizationVersion(" ")).Throws<ArgumentException>();
+    }
+
+    [Test]
+    public async Task WithOrganizationId_Should_Set_OrganizationId_On_OrganizationService()
+    {
+        var organizationId = Guid.NewGuid();
+
+        var service = new FakeDataverseBuilder()
+            .WithOrganizationId(organizationId)
+            .GetOrganizationService();
+
+        await Assert.That(service.Options.OrganizationId).IsEqualTo(organizationId);
+    }
+
+    [Test]
+    public async Task WithOrganizationName_Should_Set_Names_On_OrganizationService()
+    {
+        var service = new FakeDataverseBuilder()
+            .WithOrganizationName("contoso", "Contoso Ltd")
+            .GetOrganizationService();
+
+        await Assert.That(service.Options.OrganizationUniqueName).IsEqualTo("contoso");
+        await Assert.That(service.Options.OrganizationFriendlyName).IsEqualTo("Contoso Ltd");
+    }
+
+    [Test]
+    public async Task WithOrganizationName_Without_FriendlyName_Should_Keep_Default()
+    {
+        var service = new FakeDataverseBuilder()
+            .WithOrganizationName("contoso")
+            .GetOrganizationService();
+
+        await Assert.That(service.Options.OrganizationUniqueName).IsEqualTo("contoso");
+        await Assert.That(service.Options.OrganizationFriendlyName).IsEqualTo(new FakeDataverseOptions().OrganizationFriendlyName);
+    }
+
+    [Test]
+    public async Task WithOrganizationName_Should_Throw_On_Blank_UniqueName()
+    {
+        var builder = new FakeDataverseBuilder();
+
+        await Assert.That(() => builder.WithOrganizationName("")).Throws<ArgumentException>();
+    }
+
+    [Test]
     public async Task AddEntityMetadata_And_Relationships_Should_BeStored_In_Service()
     {
         var accountMetadata = new EntityMetadata

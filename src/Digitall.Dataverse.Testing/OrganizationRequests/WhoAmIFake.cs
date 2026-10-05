@@ -21,9 +21,11 @@ public class WhoAmIFake : OrganizationRequestFake<WhoAmIRequest, WhoAmIResponse>
             var buId = GetBusinessUnitId(user) ?? fakeOrganizationService.Options.BusinessUnitId;
             results.Add("BusinessUnitId", buId);
 
-            var orgId = fakeOrganizationService.Options.OrganizationId != Guid.Empty
-                ? fakeOrganizationService.Options.OrganizationId
-                : GetOrganizationId(fakeOrganizationService, user, buId);
+            var orgId = GetOrganizationId(fakeOrganizationService, user, buId);
+            if (orgId == Guid.Empty)
+            {
+                orgId = fakeOrganizationService.Options.OrganizationId;
+            }
             results.Add("OrganizationId", orgId);
         }
         else if (fakeOrganizationService.Options.OrganizationId != Guid.Empty)

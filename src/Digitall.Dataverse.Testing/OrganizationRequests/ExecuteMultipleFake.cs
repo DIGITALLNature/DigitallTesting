@@ -2,6 +2,7 @@
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
 using System.ServiceModel;
+using Digitall.Dataverse.Testing.Errors;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 
@@ -13,56 +14,68 @@ public class ExecuteMultipleFake : OrganizationRequestFake<ExecuteMultipleReques
     {
         ArgumentNullException.ThrowIfNull(organizationRequest);
 
-        var continueOnError = organizationRequest.Settings?.ContinueOnError ?? false;
-        var returnResponses = organizationRequest.Settings?.ReturnResponses ?? false;
+        if (organizationRequest.Settings == null)
+        {
+            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "Required field 'Settings' is missing");
+        }
+
+        if (organizationRequest.Requests == null)
+        {
+            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "Required field 'Requests' is missing");
+        }
+
+        if (organizationRequest.Requests.Any(r => r is ExecuteMultipleRequest))
+        {
+            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "ExecuteMultipleRequest cannot be nested inside another ExecuteMultipleRequest");
+        }
+
+        var continueOnError = organizationRequest.Settings.ContinueOnError;
+        var returnResponses = organizationRequest.Settings.ReturnResponses;
 
         var responses = new ExecuteMultipleResponseItemCollection();
         var isFaulted = false;
 
-        if (organizationRequest.Requests != null)
+        for (var i = 0; i < organizationRequest.Requests.Count; i++)
         {
-            for (var i = 0; i < organizationRequest.Requests.Count; i++)
+            var request = organizationRequest.Requests[i];
+            try
             {
-                var request = organizationRequest.Requests[i];
-                try
+                var response = fakeOrganizationService.Execute(request);
+                if (returnResponses)
                 {
-                    var response = fakeOrganizationService.Execute(request);
-                    if (returnResponses)
-                    {
-                        responses.Add(new ExecuteMultipleResponseItem
-                        {
-                            RequestIndex = i,
-                            Response = response
-                        });
-                    }
-                }
-                catch (FaultException<OrganizationServiceFault> faultEx)
-                {
-                    isFaulted = true;
                     responses.Add(new ExecuteMultipleResponseItem
                     {
                         RequestIndex = i,
-                        Fault = faultEx.Detail
+                        Response = response
                     });
-
-                    if (!continueOnError)
-                    {
-                        break;
-                    }
                 }
-                catch (Exception ex)
+            }
+            catch (FaultException<OrganizationServiceFault> faultEx)
+            {
+                isFaulted = true;
+                responses.Add(new ExecuteMultipleResponseItem
                 {
-                    isFaulted = true;
-                    responses.Add(new ExecuteMultipleResponseItem
-                    {
-                        RequestIndex = i,
-                        Fault = new OrganizationServiceFault { Message = ex.Message }
-                    });
+                    RequestIndex = i,
+                    Fault = faultEx.Detail
+                });
 
-                    if (!continueOnError)
-                    {
-                        break;
-                    }
+                if (!continueOnError)
+                {
+                    break;
+                }
+            }
+            catch (Exception ex)
+            {
+                isFaulted = true;
+                responses.Add(new ExecuteMultipleResponseItem
+                {
+                    RequestIndex = i,
+                    Fault = new OrganizationServiceFault { Message = ex.Message }
+                });
+
+                if (!continueOnError)
+                {
+                    break;
                 }
             }
         }

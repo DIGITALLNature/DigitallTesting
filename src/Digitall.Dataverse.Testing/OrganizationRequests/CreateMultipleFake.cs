@@ -1,7 +1,6 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
-using Digitall.Dataverse.Testing.Errors;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 
@@ -13,10 +12,7 @@ public class CreateMultipleFake : OrganizationRequestFake<CreateMultipleRequest,
     {
         ArgumentNullException.ThrowIfNull(organizationRequest);
 
-        if (organizationRequest.Targets == null)
-        {
-            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "Required field 'Targets' is missing");
-        }
+        MultipleTargetsValidator.Validate(organizationRequest.Targets);
 
         var ids = new List<Guid>();
 
