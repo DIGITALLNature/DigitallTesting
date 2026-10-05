@@ -8,6 +8,10 @@ on:
       - beta
       - "releases/*" # The release branches
 
+concurrency:
+  group: qodana-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   qodana:
     runs-on: ubuntu-latest
@@ -21,11 +25,16 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }} # to check out the actual pull request commit, not the merge commit
           fetch-depth: 0 # a full history is required for pull request analysis
       - name: "Qodana Scan"
-        uses: JetBrains/qodana-action@v2026.1.0
+        uses: JetBrains/qodana-action@v2026.2
         with:
           pr-mode: false
           use-caches: true
+          upload-result: true
           args: --baseline baseline.sarif.json
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN_307850498 }}
           QODANA_ENDPOINT: "https://qodana.cloud"
+      - uses: github/codeql-action/upload-sarif@v3
+        if: ${{ !cancelled() }} # upload findings even if the quality gate failed the scan step
+        with:
+          sarif_file: ${{ runner.temp }}/qodana/results/qodana.sarif.json
