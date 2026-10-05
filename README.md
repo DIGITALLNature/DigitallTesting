@@ -410,6 +410,8 @@ Built-in fakes for common Dataverse operations:
 | `WhoAmIRequest` | `WhoAmIFake` | Current user identity |
 | `RetrieveEntityRequest` | `RetrieveEntityFake` | Entity metadata retrieval |
 | `RetrieveAllEntitiesRequest` | `RetrieveAllEntitiesFake` | Retrieve metadata for all known entities |
+| `RetrieveAttributeRequest` | `RetrieveAttributeFake` | Attribute metadata retrieval |
+| `RetrieveRelationshipRequest` | `RetrieveRelationshipFake` | Relationship metadata retrieval by name or metadata ID |
 | `QueryExpressionToFetchXmlRequest` | `QueryExpressionToFetchXmlFake` | Convert a `QueryExpression` to FetchXml |
 | `FetchXmlToQueryExpressionRequest` | `FetchXmlToQueryExpressionFake` | Convert FetchXml to a `QueryExpression` |
 | `ExecuteTransactionRequest` | `ExecuteTransactionFake` | Batch transaction execution |
