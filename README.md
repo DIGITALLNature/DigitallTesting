@@ -400,7 +400,7 @@ Built-in fakes for common Dataverse operations:
 | `RetrieveMultipleRequest` | `RetrieveMultipleFake` | Query execution pipeline |
 | `UpdateRequest` | `UpdateFake` | Entity updates with existence validation |
 | `DeleteRequest` | `DeleteFake` | Entity deletion |
-| `UpsertRequest` | `UpsertFake` | Create-or-update semantics with deep insert |
+| `UpsertRequest` | `UpsertFake` | Create-or-update semantics with alternate keys and deep insert |
 | `AssociateRequest` | `AssociateFake` | Relationship association |
 | `DisassociateRequest` | `DisassociateFake` | Relationship disassociation |
 | `SetStateRequest` | `SetStateFake` | Entity state/status changes |

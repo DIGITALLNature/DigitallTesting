@@ -1,6 +1,7 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
+using Digitall.Dataverse.Testing.Extensions;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 
@@ -13,14 +14,44 @@ public class UpsertFake : OrganizationRequestFake<UpsertRequest, UpsertResponse>
         ArgumentNullException.ThrowIfNull(fakeOrganizationService);
         ArgumentNullException.ThrowIfNull(organizationRequest);
 
-        var target = organizationRequest.Target;
+        // Dataverse serializes the request, so the caller's entity is never mutated
+        var target = organizationRequest.Target.CloneEntity();
         var entityLogicalName = target.LogicalName;
         var entityId = target.Id;
 
-        bool recordCreated;
-        if (fakeOrganizationService.EntityExists(entityLogicalName, entityId))
+        // Id takes precedence; alternate keys are only used when no Id is given
+        var existingId = entityId != Guid.Empty
+            ? fakeOrganizationService.EntityExists(entityLogicalName, entityId) ? entityId : (Guid?)null
+            : fakeOrganizationService.FindEntityByAlternateKey(entityLogicalName, target.KeyAttributes)?.Id;
+
+        var recordCreated = existingId is null;
+        var keyAttributes = target.KeyAttributes.ToList();
+        target.KeyAttributes.Clear();
+
+        if (recordCreated)
         {
-            recordCreated = false;
+            foreach (var (key, value) in keyAttributes)
+            {
+                if (!target.Attributes.ContainsKey(key))
+                {
+                    target.Attributes[key] = value;
+                }
+            }
+
+            // Create routes through CreateFake which handles deep insert
+            entityId = fakeOrganizationService.Create(target);
+        }
+        else
+        {
+            entityId = existingId!.Value;
+            target.Id = entityId;
+
+            // The key used to address the record cannot be changed by the same request
+            foreach (var (key, _) in keyAttributes)
+            {
+                target.Attributes.Remove(key);
+            }
+
             fakeOrganizationService.Update(target);
 
             // Deep insert: sub-entities are always created even when the parent is updated
@@ -28,12 +59,6 @@ public class UpsertFake : OrganizationRequestFake<UpsertRequest, UpsertResponse>
             {
                 DeepInsertProcessor.Process(entityLogicalName, entityId, target.RelatedEntities, fakeOrganizationService);
             }
-        }
-        else
-        {
-            recordCreated = true;
-            // state.Create routes through CreateFake which handles deep insert
-            entityId = fakeOrganizationService.Create(target);
         }
 
         var result = new UpsertResponse();
