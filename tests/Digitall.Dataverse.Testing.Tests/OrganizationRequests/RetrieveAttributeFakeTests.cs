@@ -1,7 +1,10 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
+using System.ServiceModel;
+using Digitall.Dataverse.Testing.Errors;
 using Digitall.Dataverse.Testing.OrganizationRequests;
+using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 
@@ -58,8 +61,8 @@ public class RetrieveAttributeFakeTests
             LogicalName = "name"
         });
 
-        Assert.Throws<KeyNotFoundException>(Action);
-        await Task.CompletedTask;
+        var ex = Assert.Throws<FaultException<OrganizationServiceFault>>(Action);
+        await Assert.That(ex.Detail.ErrorCode).IsEqualTo((int)ErrorCodes.QueryBuilderNoEntity);
     }
 
     [Test]
@@ -74,8 +77,8 @@ public class RetrieveAttributeFakeTests
             LogicalName = "missing"
         });
 
-        Assert.Throws<InvalidOperationException>(Action);
-        await Task.CompletedTask;
+        var ex = Assert.Throws<FaultException<OrganizationServiceFault>>(Action);
+        await Assert.That(ex.Detail.ErrorCode).IsEqualTo((int)ErrorCodes.QueryBuilderNoAttribute);
     }
 
     [Test]
