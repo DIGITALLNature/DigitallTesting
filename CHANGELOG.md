@@ -1,3 +1,19 @@
+# [1.2.0-beta.1](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.1-beta.1...v1.2.0-beta.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* align organization fakes with Dataverse validation and state precedence ([30df461](https://github.com/DIGITALLNature/DigitallTesting/commit/30df46144c538d0fe6660167c77f9848d74b8524))
+
+
+### Features
+
+* add CreateMultiple and UpdateMultiple organization request fakes ([ed678cc](https://github.com/DIGITALLNature/DigitallTesting/commit/ed678cc70ee0cd722d1bb88f5f18afa86a8de6d9))
+* add ExecuteMultiple organization request fake ([a621290](https://github.com/DIGITALLNature/DigitallTesting/commit/a6212908db8a629c9c88fb357a2bc8ec3cb4da7e))
+* add RetrieveCurrentOrganization organization request fake ([5d32372](https://github.com/DIGITALLNature/DigitallTesting/commit/5d3237288884a67856ef8e3c5a8b7f374f7ed80a))
+* add RetrieveRelationship organization request fake ([eef74a3](https://github.com/DIGITALLNature/DigitallTesting/commit/eef74a32c831eeb7d720f2f02f556f4c9a34bb9d))
+* add RetrieveVersion organization request fake ([987979c](https://github.com/DIGITALLNature/DigitallTesting/commit/987979c662decb3204fe73cf78d8e3c33abe3ea7))
+
 ## [1.1.1-beta.1](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.0...v1.1.1-beta.1) (2026-10-05)
 
 
