@@ -585,4 +585,54 @@ public class FakeOrganizationServiceTests
         void Action() => sut.Execute(createRequest);
         await Assert.That(Action).ThrowsNothing();
     }
+
+    [Test]
+    public async Task State_Entities_IsCaseInsensitive()
+    {
+        var sut = new FakeOrganizationService();
+        var id = Guid.NewGuid();
+        sut.Add(new Entity("account") { Id = id, ["name"] = "CaseTest" });
+
+        var recordUpper = sut.Retrieve("ACCOUNT", id, new ColumnSet("name"));
+        var recordMixed = sut.Retrieve("Account", id, new ColumnSet("name"));
+
+        await Assert.That(recordUpper.GetAttributeValue<string>("name")).IsEqualTo("CaseTest");
+        await Assert.That(recordMixed.GetAttributeValue<string>("name")).IsEqualTo("CaseTest");
+    }
+
+    [Test]
+    public async Task State_EntityMetadata_IsCaseInsensitive()
+    {
+        var sut = new FakeOrganizationService();
+        sut.AddMetadata(new EntityMetadata { LogicalName = "custom_table" });
+
+        var existsUpper = sut.State.EntityMetadata.TryGetValue("CUSTOM_TABLE", out var metadataUpper);
+        var existsMixed = sut.State.EntityMetadata.TryGetValue("Custom_Table", out var metadataMixed);
+
+        await Assert.That(existsUpper).IsTrue();
+        await Assert.That(metadataUpper).IsNotNull();
+        await Assert.That(existsMixed).IsTrue();
+        await Assert.That(metadataMixed).IsNotNull();
+    }
+
+    [Test]
+    public async Task State_Relationships_IsCaseInsensitive()
+    {
+        var sut = new FakeOrganizationService();
+        sut.AddRelationship(new OneToManyRelationshipMetadata
+        {
+            SchemaName = "account_contacts",
+            ReferencedEntity = "account",
+            ReferencingEntity = "contact",
+            ReferencingAttribute = "parentcustomerid"
+        });
+
+        var existsUpper = sut.State.Relationships.TryGetValue("ACCOUNT_CONTACTS", out var relUpper);
+        var existsMixed = sut.State.Relationships.TryGetValue("Account_Contacts", out var relMixed);
+
+        await Assert.That(existsUpper).IsTrue();
+        await Assert.That(relUpper).IsNotNull();
+        await Assert.That(existsMixed).IsTrue();
+        await Assert.That(relMixed).IsNotNull();
+    }
 }
