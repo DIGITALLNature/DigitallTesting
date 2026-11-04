@@ -84,6 +84,33 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
         OrganizationRequestFakes.Add(fake.ForType, fake);
     }
 
+    /// <summary>
+    /// Replaces the handler for the request type with the specified fake.
+    /// </summary>
+    public void ReplaceOrganizationRequest(IOrganizationRequestFake fake)
+    {
+        ArgumentNullException.ThrowIfNull(fake);
+        OrganizationRequestFakes[fake.ForType] = fake;
+    }
+
+    /// <summary>
+    /// Wraps the current handler for the request type with a decorator.
+    /// </summary>
+    public void DecorateOrganizationRequest(IOrganizationRequestFakeDecorator decorator)
+    {
+        ArgumentNullException.ThrowIfNull(decorator);
+        var current = OrganizationRequestFakes.TryGetValue(decorator.ForType, out var registeredFake)
+            ? registeredFake
+            : s_defaultFakes.Value.GetValueOrDefault(decorator.ForType);
+
+        if (current == null)
+        {
+            throw new InvalidOperationException($"No existing handler is registered for request type '{decorator.ForType.Name}'.");
+        }
+
+        OrganizationRequestFakes[decorator.ForType] = new DecoratedOrganizationRequestFake(current, decorator);
+    }
+
     public void AddRequests(IEnumerable<IOrganizationRequestFake> requests)
     {
         foreach (var request in requests)
@@ -97,6 +124,18 @@ public class FakeOrganizationService(TimeProvider timeProvider, FakeOrganization
         foreach (var request in requests)
         {
             AddRequest(request);
+        }
+    }
+
+    private sealed class DecoratedOrganizationRequestFake(
+        IOrganizationRequestFake next,
+        IOrganizationRequestFakeDecorator decorator) : IOrganizationRequestFake
+    {
+        public Type ForType => next.ForType;
+
+        public OrganizationResponse Execute(OrganizationRequest organizationRequest, FakeOrganizationService fakeOrganizationService)
+        {
+            return decorator.Execute(organizationRequest, fakeOrganizationService, () => next.Execute(organizationRequest, fakeOrganizationService));
         }
     }
 

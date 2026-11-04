@@ -41,37 +41,135 @@ public class RetrieveAllEntitiesTests
     }
 
     [Test]
-    public async Task Execute_Should_Return_Registered_Instance_Reference()
+    public async Task Execute_Should_Return_Metadata_Projection_Without_Changing_Registered_Metadata()
     {
         var sut = new FakeOrganizationService();
         sut.AddRequest(new RetrieveAllEntitiesFake());
 
         var metadata = new EntityMetadata { LogicalName = "account" };
+        SetMetadataProperty(metadata, nameof(EntityMetadata.Attributes), new AttributeMetadata[]
+        {
+            new StringAttributeMetadata { LogicalName = "name" }
+        });
         sut.State.EntityMetadata["account"] = metadata;
 
-        var response = (RetrieveAllEntitiesResponse)sut.Execute(new RetrieveAllEntitiesRequest());
+        var response = (RetrieveAllEntitiesResponse)sut.Execute(new RetrieveAllEntitiesRequest { EntityFilters = EntityFilters.Entity });
 
         await Assert.That(response.EntityMetadata).Count().IsEqualTo(1);
-        await Assert.That(response.EntityMetadata[0]).IsSameReferenceAs(metadata);
+        await Assert.That(response.EntityMetadata[0]).IsNotSameReferenceAs(metadata);
+        await Assert.That(response.EntityMetadata[0].Attributes).IsNull();
+        await Assert.That(metadata.Attributes).Count().IsEqualTo(1);
     }
 
     [Test]
-    public async Task Execute_Should_Ignore_Filters_And_Return_All_Metadata()
+    public async Task Execute_Should_Return_Attributes_Only_When_Requested()
     {
         var sut = new FakeOrganizationService();
         sut.AddRequest(new RetrieveAllEntitiesFake());
 
-        sut.State.EntityMetadata["account"] = new EntityMetadata { LogicalName = "account" };
-        sut.State.EntityMetadata["contact"] = new EntityMetadata { LogicalName = "contact" };
+        var metadata = new EntityMetadata { LogicalName = "account" };
+        SetMetadataProperty(metadata, nameof(EntityMetadata.Attributes), new AttributeMetadata[]
+        {
+            new StringAttributeMetadata { LogicalName = "name" }
+        });
+        SetMetadataProperty(metadata, nameof(EntityMetadata.OneToManyRelationships), new OneToManyRelationshipMetadata[]
+        {
+            new() { SchemaName = "account_contacts" }
+        });
+        sut.State.EntityMetadata["account"] = metadata;
 
         var request = new RetrieveAllEntitiesRequest
         {
-            EntityFilters = EntityFilters.Attributes,
-            RetrieveAsIfPublished = true
+            EntityFilters = EntityFilters.Attributes
         };
 
         var response = (RetrieveAllEntitiesResponse)sut.Execute(request);
 
-        await Assert.That(response.EntityMetadata).Count().IsEqualTo(2);
+        await Assert.That(response.EntityMetadata).Count().IsEqualTo(1);
+        await Assert.That(response.EntityMetadata[0].Attributes).Count().IsEqualTo(1);
+        await Assert.That(response.EntityMetadata[0].OneToManyRelationships).IsNull();
+        await Assert.That(metadata.Attributes).Count().IsEqualTo(1);
+        await Assert.That(metadata.OneToManyRelationships).Count().IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Execute_Should_Return_Relationships_Only_When_Requested()
+    {
+        var sut = new FakeOrganizationService();
+        sut.AddRequest(new RetrieveAllEntitiesFake());
+
+        var metadata = new EntityMetadata { LogicalName = "account" };
+        SetMetadataProperty(metadata, nameof(EntityMetadata.Attributes), new AttributeMetadata[]
+        {
+            new StringAttributeMetadata { LogicalName = "name" }
+        });
+        SetMetadataProperty(metadata, nameof(EntityMetadata.OneToManyRelationships), new OneToManyRelationshipMetadata[]
+        {
+            new() { SchemaName = "account_contacts" }
+        });
+        sut.State.EntityMetadata["account"] = metadata;
+
+        var response = (RetrieveAllEntitiesResponse)sut.Execute(
+            new RetrieveAllEntitiesRequest { EntityFilters = EntityFilters.Relationships });
+
+        await Assert.That(response.EntityMetadata[0].Attributes).IsNull();
+        await Assert.That(response.EntityMetadata[0].OneToManyRelationships).Count().IsEqualTo(1);
+        await Assert.That(response.EntityMetadata[0].OneToManyRelationships[0]).IsNotSameReferenceAs(metadata.OneToManyRelationships[0]);
+    }
+
+    [Test]
+    public async Task Execute_Should_Return_Attributes_And_Relationships_When_Both_Are_Requested()
+    {
+        var sut = new FakeOrganizationService();
+        sut.AddRequest(new RetrieveAllEntitiesFake());
+
+        var metadata = new EntityMetadata { LogicalName = "account" };
+        SetMetadataProperty(metadata, nameof(EntityMetadata.Attributes), new AttributeMetadata[]
+        {
+            new StringAttributeMetadata { LogicalName = "name" }
+        });
+        SetMetadataProperty(metadata, nameof(EntityMetadata.OneToManyRelationships), new OneToManyRelationshipMetadata[]
+        {
+            new() { SchemaName = "account_contacts" }
+        });
+        sut.State.EntityMetadata["account"] = metadata;
+
+        var response = (RetrieveAllEntitiesResponse)sut.Execute(
+            new RetrieveAllEntitiesRequest { EntityFilters = EntityFilters.Attributes | EntityFilters.Relationships });
+
+        await Assert.That(response.EntityMetadata[0].Attributes).Count().IsEqualTo(1);
+        await Assert.That(response.EntityMetadata[0].OneToManyRelationships).Count().IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Execute_Should_Ignore_RetrieveAsIfPublished_When_Using_Single_Metadata_State()
+    {
+        var sut = new FakeOrganizationService();
+        sut.AddRequest(new RetrieveAllEntitiesFake());
+        var metadata = new EntityMetadata { LogicalName = "account" };
+        sut.State.EntityMetadata["account"] = metadata;
+
+        var publishedResponse = (RetrieveAllEntitiesResponse)sut.Execute(new RetrieveAllEntitiesRequest
+        {
+            EntityFilters = EntityFilters.Entity,
+            RetrieveAsIfPublished = true
+        });
+        publishedResponse.EntityMetadata[0].LogicalName = "changed";
+        var unpublishedResponse = (RetrieveAllEntitiesResponse)sut.Execute(new RetrieveAllEntitiesRequest
+        {
+            EntityFilters = EntityFilters.Entity,
+            RetrieveAsIfPublished = false
+        });
+
+        await Assert.That(publishedResponse.EntityMetadata).Count().IsEqualTo(1);
+        await Assert.That(unpublishedResponse.EntityMetadata[0].LogicalName).IsEqualTo("account");
+        await Assert.That(metadata.LogicalName).IsEqualTo("account");
+    }
+
+    private static void SetMetadataProperty(EntityMetadata metadata, string propertyName, object? value)
+    {
+        var property = typeof(EntityMetadata).GetProperty(propertyName)
+                       ?? throw new InvalidOperationException($"The SDK EntityMetadata.{propertyName} property is unavailable.");
+        property.SetValue(metadata, value);
     }
 }

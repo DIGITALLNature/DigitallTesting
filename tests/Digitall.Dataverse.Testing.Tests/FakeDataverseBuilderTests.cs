@@ -5,6 +5,7 @@ using Digitall.Dataverse.Testing.Extensions;
 using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Query;
 
@@ -40,6 +41,52 @@ public class FakeDataverseBuilderTests
 
         await Assert.That(result).IsNotNull();
         await Assert.That(result).IsTypeOf<WhoAmIResponse>();
+    }
+
+    [Test]
+    public async Task AddOrganizationRequests_Should_Keep_Duplicate_Registration_Strict()
+    {
+        var builder = new FakeDataverseBuilder();
+        var spy = new SpyOrganizationRequestFake<RetrieveMultipleRequest, RetrieveMultipleResponse>();
+
+        await Assert.That(() => builder.AddOrganizationRequests(spy)).Throws<ArgumentException>();
+    }
+
+    [Test]
+    public async Task ReplaceOrganizationRequest_Should_Replace_BuiltIn_Handler()
+    {
+        var expectedResponse = new WhoAmIResponse();
+        var spy = new SpyOrganizationRequestFake<WhoAmIRequest, WhoAmIResponse>((_, _) => expectedResponse);
+        var service = new FakeDataverseBuilder()
+            .ReplaceOrganizationRequest(spy)
+            .GetOrganizationService();
+
+        var response = service.Execute(new WhoAmIRequest());
+
+        await Assert.That(response).IsSameReferenceAs(expectedResponse);
+    }
+
+    [Test]
+    public async Task DecorateOrganizationRequest_Should_Record_Request_And_Run_BuiltIn_Query()
+    {
+        var account = new Entity("account") { Id = Guid.NewGuid(), ["name"] = "Contoso" };
+        var spy = new SpyOrganizationRequestFake<RetrieveMultipleRequest, RetrieveMultipleResponse>();
+        var service = new FakeDataverseBuilder()
+            .AddData(account)
+            .DecorateOrganizationRequest(spy)
+            .GetOrganizationService();
+
+        var response = (RetrieveMultipleResponse)service.Execute(new RetrieveMultipleRequest
+        {
+            Query = new QueryExpression("account")
+            {
+                ColumnSet = new ColumnSet("name")
+            }
+        });
+
+        await Assert.That(spy.ReceivedRequests).Count().IsEqualTo(1);
+        await Assert.That(response.EntityCollection.Entities).Count().IsEqualTo(1);
+        await Assert.That(response.EntityCollection.Entities[0].GetAttributeValue<string>("name")).IsEqualTo("Contoso");
     }
 
     [Test]

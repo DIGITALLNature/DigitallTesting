@@ -198,7 +198,9 @@ var service = new FakeDataverseBuilder()
 
 **Builder extension methods:**
 - `.AddData(params Entity[])` — pre-seed the in-memory store
-- `.AddOrganizationRequests(params IOrganizationRequestFake[])` — register custom fakes
+- `.AddOrganizationRequests(params IOrganizationRequestFake[])` — register custom fakes; duplicate request types are rejected
+- `.ReplaceOrganizationRequest(IOrganizationRequestFake)` — explicitly replace a built-in or registered handler
+- `.DecorateOrganizationRequest(IOrganizationRequestFakeDecorator)` — wrap the existing handler; the decorator can call the next handler
 - `.AddEntityMetadata(params EntityMetadata[])` — register entity metadata
 - `.AddRelationships(params RelationshipMetadataBase[])` — register relationships
 - `.LoadMetadata(string path)` — load `EntityMetadata` from XML (file or directory)
@@ -415,6 +417,7 @@ Built-in fakes for common Dataverse operations:
 | `RetrieveCurrentOrganizationRequest` | `RetrieveCurrentOrganizationFake` | Current organization details retrieval |
 | `RetrieveEntityRequest` | `RetrieveEntityFake` | Entity metadata retrieval |
 | `RetrieveAllEntitiesRequest` | `RetrieveAllEntitiesFake` | Retrieve metadata for all known entities |
+| `RetrieveMetadataChangesRequest` | `RetrieveMetadataChangesFake` | Filter entity metadata by `MetadataId` and project entity/key properties |
 | `RetrieveAttributeRequest` | `RetrieveAttributeFake` | Attribute metadata retrieval |
 | `RetrieveRelationshipRequest` | `RetrieveRelationshipFake` | Relationship metadata retrieval by name or metadata ID |
 | `QueryExpressionToFetchXmlRequest` | `QueryExpressionToFetchXmlFake` | Convert a `QueryExpression` to FetchXml |
@@ -445,6 +448,17 @@ public class MyCustomRequestFake : OrganizationRequestFake<MyCustomRequest, MyCu
 // Register
 service.AddRequest(new MyCustomRequestFake());
 ```
+
+`SpyOrganizationRequestFake<TReq, TRes>` implements `IOrganizationRequestFakeDecorator`, so it can observe a built-in request while preserving its normal execution:
+
+```csharp
+var spy = new SpyOrganizationRequestFake<RetrieveMultipleRequest, RetrieveMultipleResponse>();
+var service = new FakeDataverseBuilder()
+    .DecorateOrganizationRequest(spy)
+    .GetOrganizationService();
+```
+
+Use `.ReplaceOrganizationRequest(...)` when the built-in behavior should be replaced. The existing `.AddOrganizationRequests(...)` behavior remains strict and still rejects duplicate request types.
 
 ---
 
@@ -546,6 +560,10 @@ var service = new FakeDataverseBuilder()
     .LoadMetadata("./metadata/")              // all *.xml in directory
     .GetOrganizationService();
 ```
+
+`RetrieveAllEntitiesRequest` projects attributes, relationships, and privileges only when their corresponding `EntityFilters` flags are set. Responses are detached copies and do not mutate registered metadata. The fake stores one metadata view, so `RetrieveAsIfPublished` returns that same view for either value.
+
+`RetrieveMetadataChangesRequest` supports flat `MetadataId Equals {Guid}` criteria and explicit projections of entity `MetadataId`/`Keys` and key `MetadataId`/`LogicalName`. `ClientVersionStamp`, delta queries, and other metadata query forms are not supported and throw `NotSupportedException`.
 
 ---
 

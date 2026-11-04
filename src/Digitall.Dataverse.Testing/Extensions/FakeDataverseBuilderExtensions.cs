@@ -40,6 +40,24 @@ public static class FakeDataverseBuilderExtensions
             return builder;
         }
 
+        /// <summary>
+        /// Replaces the handler for the request type with the specified fake.
+        /// </summary>
+        public TBuilder ReplaceOrganizationRequest(IOrganizationRequestFake request)
+        {
+            builder.GetOrganizationService().ReplaceOrganizationRequest(request);
+            return builder;
+        }
+
+        /// <summary>
+        /// Wraps the current handler for the request type with a decorator.
+        /// </summary>
+        public TBuilder DecorateOrganizationRequest(IOrganizationRequestFakeDecorator decorator)
+        {
+            builder.GetOrganizationService().DecorateOrganizationRequest(decorator);
+            return builder;
+        }
+
         // ReSharper disable once UnusedMember.Global : Public API
         public TBuilder AddEntityMetadata(IEnumerable<EntityMetadata> metadata)
         {
