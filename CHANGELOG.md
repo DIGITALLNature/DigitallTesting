@@ -1,3 +1,17 @@
+# [1.3.0](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.2.0...v1.3.0) (2026-11-04)
+
+
+### Bug Fixes
+
+* address pull request review findings ([18db2bb](https://github.com/DIGITALLNature/DigitallTesting/commit/18db2bb8928ba25d4681a97e0e3ffcc2f4802eeb))
+* **metadata:** honor retrieve all entity filters ([53423b6](https://github.com/DIGITALLNature/DigitallTesting/commit/53423b67a9b8fd46bb53c553c75a26072a36937b))
+
+
+### Features
+
+* **builder:** replace and decorate request handlers ([f87af99](https://github.com/DIGITALLNature/DigitallTesting/commit/f87af997d7ef610d7212dd2cb301ab870d4bd6ed))
+* **metadata:** support retrieve metadata changes ([3955240](https://github.com/DIGITALLNature/DigitallTesting/commit/39552409731d27961526e3324964dced98652a66))
+
 # [1.2.0](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.1.0...v1.2.0) (2026-10-05)
 
 
