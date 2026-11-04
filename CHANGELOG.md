@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.3.0...v1.3.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **metadata:** include many-to-one relationships ([51ef2d1](https://github.com/DIGITALLNature/DigitallTesting/commit/51ef2d16119a1b9b7d36d9d7a27c7e03800b9e52))
+* **metadata:** support scoped metadata projections ([b98d62c](https://github.com/DIGITALLNature/DigitallTesting/commit/b98d62cd113ebfb096c8cc98069dd049beb10d43))
+
 # [1.3.0](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.2.0...v1.3.0) (2026-11-04)
 
 
