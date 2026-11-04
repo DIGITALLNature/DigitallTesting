@@ -1,11 +1,9 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
-using System.ServiceModel;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Metadata.Query;
-using Microsoft.Xrm.Sdk.Query;
 
 namespace Digitall.Dataverse.Testing.Tests.OrganizationRequests;
 

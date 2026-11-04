@@ -166,7 +166,7 @@ public class RetrieveAllEntitiesTests
         await Assert.That(metadata.LogicalName).IsEqualTo("account");
     }
 
-    private static void SetMetadataProperty<T>(EntityMetadata metadata, string propertyName, T value)
+    private static void SetMetadataProperty(EntityMetadata metadata, string propertyName, object? value)
     {
         var property = typeof(EntityMetadata).GetProperty(propertyName)
                        ?? throw new InvalidOperationException($"The SDK EntityMetadata.{propertyName} property is unavailable.");

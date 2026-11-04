@@ -1,7 +1,6 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
-using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Metadata.Query;
@@ -9,6 +8,7 @@ using Microsoft.Xrm.Sdk.Query;
 
 namespace Digitall.Dataverse.Testing.OrganizationRequests;
 
+// ReSharper disable once UnusedMember.Global : Registered automatically through reflection.
 public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetadataChangesRequest, RetrieveMetadataChangesResponse>
 {
     public override RetrieveMetadataChangesResponse Execute(
@@ -129,20 +129,16 @@ public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetad
             var keyProperties = query.KeyQuery!.Properties.PropertyNames;
             var keys = metadata.Keys?.Select(key =>
                 {
-                    var keyProjection = new EntityKeyMetadata();
-                    if (keyProperties.Any(property =>
-                            string.Equals(property, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase)))
-                    {
-                        keyProjection.MetadataId = key.MetadataId;
-                    }
+                    var includeMetadataId = keyProperties.Any(property =>
+                        string.Equals(property, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase));
+                    var includeLogicalName = keyProperties.Any(property =>
+                        string.Equals(property, nameof(EntityKeyMetadata.LogicalName), StringComparison.OrdinalIgnoreCase));
 
-                    if (keyProperties.Any(property =>
-                            string.Equals(property, nameof(EntityKeyMetadata.LogicalName), StringComparison.OrdinalIgnoreCase)))
+                    return new EntityKeyMetadata
                     {
-                        keyProjection.LogicalName = key.LogicalName;
-                    }
-
-                    return keyProjection;
+                        MetadataId = includeMetadataId ? key.MetadataId : null,
+                        LogicalName = includeLogicalName ? key.LogicalName : null
+                    };
                 })
                 .ToArray() ?? [];
             var keysProperty = typeof(EntityMetadata).GetProperty(nameof(EntityMetadata.Keys))

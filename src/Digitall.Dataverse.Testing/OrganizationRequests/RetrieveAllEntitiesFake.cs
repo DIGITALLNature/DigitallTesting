@@ -1,7 +1,9 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
+using System.Reflection;
 using System.Runtime.Serialization;
+using Digitall.Dataverse.Testing.Extensions;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata;
 
@@ -9,6 +11,9 @@ namespace Digitall.Dataverse.Testing.OrganizationRequests;
 
 public class RetrieveAllEntitiesFake : OrganizationRequestFake<RetrieveAllEntitiesRequest, RetrieveAllEntitiesResponse>
 {
+    private static readonly PropertyInfo[] s_metadataProperties = typeof(EntityMetadata)
+        .GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
     public override RetrieveAllEntitiesResponse Execute(RetrieveAllEntitiesRequest organizationRequest, FakeOrganizationService fakeOrganizationService)
     {
         ArgumentNullException.ThrowIfNull(organizationRequest);
@@ -36,42 +41,37 @@ public class RetrieveAllEntitiesFake : OrganizationRequestFake<RetrieveAllEntiti
 
     private static EntityMetadata ProjectMetadata(EntityMetadata metadata, EntityFilters entityFilters)
     {
-        var projectedMetadata = CloneMetadata(metadata);
-
-        if (!entityFilters.HasFlag(EntityFilters.Attributes))
+        var projectedMetadata = new EntityMetadata();
+        foreach (var property in s_metadataProperties)
         {
-            SetMetadataProperty(projectedMetadata, nameof(EntityMetadata.Attributes), null);
-        }
+            if (property.Name == nameof(IExtensibleDataObject.ExtensionData)
+                || IsExcludedCollection(property.Name, entityFilters)
+                || property.GetIndexParameters().Length != 0)
+            {
+                continue;
+            }
 
-        if (!entityFilters.HasFlag(EntityFilters.Relationships))
-        {
-            SetMetadataProperty(projectedMetadata, nameof(EntityMetadata.ManyToManyRelationships), null);
-            SetMetadataProperty(projectedMetadata, nameof(EntityMetadata.ManyToOneRelationships), null);
-            SetMetadataProperty(projectedMetadata, nameof(EntityMetadata.OneToManyRelationships), null);
-        }
+            var setter = property.GetSetMethod(nonPublic: true);
+            if (setter == null)
+            {
+                continue;
+            }
 
-        if (!entityFilters.HasFlag(EntityFilters.Privileges))
-        {
-            SetMetadataProperty(projectedMetadata, nameof(EntityMetadata.Privileges), null);
+            setter.Invoke(projectedMetadata, [property.GetValue(metadata).DeepClone()]);
         }
 
         return projectedMetadata;
     }
 
-    private static EntityMetadata CloneMetadata(EntityMetadata metadata)
+    private static bool IsExcludedCollection(string propertyName, EntityFilters entityFilters)
     {
-        using var stream = new MemoryStream();
-        var serializer = new DataContractSerializer(typeof(EntityMetadata));
-        serializer.WriteObject(stream, metadata);
-        stream.Position = 0;
-        return serializer.ReadObject(stream) as EntityMetadata
-               ?? throw new InvalidOperationException("The registered entity metadata could not be cloned.");
-    }
-
-    private static void SetMetadataProperty(EntityMetadata metadata, string propertyName, object? value)
-    {
-        var property = typeof(EntityMetadata).GetProperty(propertyName)
-                       ?? throw new InvalidOperationException($"The SDK EntityMetadata.{propertyName} property is unavailable.");
-        property.SetValue(metadata, value);
+        return (!entityFilters.HasFlag(EntityFilters.Attributes)
+                && propertyName == nameof(EntityMetadata.Attributes))
+               || (!entityFilters.HasFlag(EntityFilters.Relationships)
+                   && propertyName is nameof(EntityMetadata.ManyToManyRelationships)
+                       or nameof(EntityMetadata.ManyToOneRelationships)
+                       or nameof(EntityMetadata.OneToManyRelationships))
+               || (!entityFilters.HasFlag(EntityFilters.Privileges)
+                   && propertyName == nameof(EntityMetadata.Privileges));
     }
 }
