@@ -286,10 +286,11 @@ public class RetrieveMetadataChangesFakeTests
     }
 
     [Test]
-    public async Task Execute_Should_Filter_And_Project_Both_Relationship_Types()
+    public async Task Execute_Should_Filter_And_Project_All_Relationship_Types()
     {
         var oneToManyId = Guid.NewGuid();
         var manyToManyId = Guid.NewGuid();
+        var manyToOneId = Guid.NewGuid();
         var excludedId = Guid.NewGuid();
         var entityMetadata = new EntityMetadata { LogicalName = "account", MetadataId = Guid.NewGuid() };
         SetMetadataProperty(entityMetadata, nameof(EntityMetadata.OneToManyRelationships), new[]
@@ -300,6 +301,10 @@ public class RetrieveMetadataChangesFakeTests
         SetMetadataProperty(entityMetadata, nameof(EntityMetadata.ManyToManyRelationships), new[]
         {
             new ManyToManyRelationshipMetadata { MetadataId = manyToManyId, SchemaName = "account_teams" }
+        });
+        SetMetadataProperty(entityMetadata, nameof(EntityMetadata.ManyToOneRelationships), new[]
+        {
+            new OneToManyRelationshipMetadata { MetadataId = manyToOneId, SchemaName = "contact_customer_accounts" }
         });
         var service = new FakeOrganizationService();
         service.AddMetadata(entityMetadata);
@@ -320,7 +325,7 @@ public class RetrieveMetadataChangesFakeTests
                         new MetadataConditionExpression(
                             nameof(MetadataBase.MetadataId),
                             MetadataConditionOperator.In,
-                            new object[] { oneToManyId, manyToManyId })
+                            new object[] { oneToManyId, manyToManyId, manyToOneId })
                     }
                 }
             }
@@ -332,8 +337,12 @@ public class RetrieveMetadataChangesFakeTests
         await Assert.That(response.EntityMetadata[0].OneToManyRelationships[0].SchemaName).IsEqualTo("account_contacts");
         await Assert.That(response.EntityMetadata[0].ManyToManyRelationships).Count().IsEqualTo(1);
         await Assert.That(response.EntityMetadata[0].ManyToManyRelationships[0].SchemaName).IsEqualTo("account_teams");
+        await Assert.That(response.EntityMetadata[0].ManyToOneRelationships).Count().IsEqualTo(1);
+        await Assert.That(response.EntityMetadata[0].ManyToOneRelationships[0].SchemaName).IsEqualTo("contact_customer_accounts");
         await Assert.That(response.EntityMetadata[0].OneToManyRelationships[0])
             .IsNotSameReferenceAs(entityMetadata.OneToManyRelationships[0]);
+        await Assert.That(response.EntityMetadata[0].ManyToOneRelationships[0])
+            .IsNotSameReferenceAs(entityMetadata.ManyToOneRelationships[0]);
     }
 
     [Test]

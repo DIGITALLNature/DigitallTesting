@@ -234,9 +234,14 @@ public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetad
                 .Where(relationship => relationshipMatches!(relationship))
                 .Select(relationship => ProjectMetadata(relationship, relationshipProperties!))
                 .ToArray() ?? [];
+            var manyToOneRelationships = metadata.ManyToOneRelationships?
+                .Where(relationship => relationshipMatches!(relationship))
+                .Select(relationship => ProjectMetadata(relationship, relationshipProperties!))
+                .ToArray() ?? [];
 
             SetPropertyValue(projection, nameof(EntityMetadata.OneToManyRelationships), oneToManyRelationships);
             SetPropertyValue(projection, nameof(EntityMetadata.ManyToManyRelationships), manyToManyRelationships);
+            SetPropertyValue(projection, nameof(EntityMetadata.ManyToOneRelationships), manyToOneRelationships);
         }
 
         if (query.KeyQuery != null)
