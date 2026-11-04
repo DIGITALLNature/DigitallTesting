@@ -198,7 +198,9 @@ var service = new FakeDataverseBuilder()
 
 **Builder extension methods:**
 - `.AddData(params Entity[])` — pre-seed the in-memory store
-- `.AddOrganizationRequests(params IOrganizationRequestFake[])` — register custom fakes
+- `.AddOrganizationRequests(params IOrganizationRequestFake[])` — register custom fakes; duplicate request types are rejected
+- `.ReplaceOrganizationRequest(IOrganizationRequestFake)` — explicitly replace a built-in or registered handler
+- `.DecorateOrganizationRequest(IOrganizationRequestFakeDecorator)` — wrap the existing handler; the decorator can call the next handler
 - `.AddEntityMetadata(params EntityMetadata[])` — register entity metadata
 - `.AddRelationships(params RelationshipMetadataBase[])` — register relationships
 - `.LoadMetadata(string path)` — load `EntityMetadata` from XML (file or directory)
@@ -446,6 +448,17 @@ public class MyCustomRequestFake : OrganizationRequestFake<MyCustomRequest, MyCu
 // Register
 service.AddRequest(new MyCustomRequestFake());
 ```
+
+`SpyOrganizationRequestFake<TReq, TRes>` implements `IOrganizationRequestFakeDecorator`, so it can observe a built-in request while preserving its normal execution:
+
+```csharp
+var spy = new SpyOrganizationRequestFake<RetrieveMultipleRequest, RetrieveMultipleResponse>();
+var service = new FakeDataverseBuilder()
+    .DecorateOrganizationRequest(spy)
+    .GetOrganizationService();
+```
+
+Use `.ReplaceOrganizationRequest(...)` when the built-in behavior should be replaced. The existing `.AddOrganizationRequests(...)` behavior remains strict and still rejects duplicate request types.
 
 ---
 

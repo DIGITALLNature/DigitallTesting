@@ -10,7 +10,8 @@ namespace Digitall.Dataverse.Testing;
 /// A trackable concrete implementation of OrganizationRequestFake that records all Execute calls
 /// and allows configuring the return value via a factory function.
 /// </summary>
-public sealed class SpyOrganizationRequestFake<TReq, TRes>(Func<TReq, FakeOrganizationService, TRes>? handler = null) : OrganizationRequestFake<TReq, TRes>
+public sealed class SpyOrganizationRequestFake<TReq, TRes>(Func<TReq, FakeOrganizationService, TRes>? handler = null)
+    : OrganizationRequestFake<TReq, TRes>, IOrganizationRequestFakeDecorator
     where TReq : OrganizationRequest
     where TRes : OrganizationResponse, new()
 {
@@ -21,5 +22,20 @@ public sealed class SpyOrganizationRequestFake<TReq, TRes>(Func<TReq, FakeOrgani
     {
         ReceivedRequests.Add(request);
         return handler?.Invoke(request, fakeOrganizationService) ?? new TRes();
+    }
+
+    OrganizationResponse IOrganizationRequestFakeDecorator.Execute(
+        OrganizationRequest organizationRequest,
+        FakeOrganizationService fakeOrganizationService,
+        Func<OrganizationResponse> next)
+    {
+        ArgumentNullException.ThrowIfNull(organizationRequest);
+        ArgumentNullException.ThrowIfNull(fakeOrganizationService);
+        ArgumentNullException.ThrowIfNull(next);
+        var request = organizationRequest as TReq
+                      ?? throw new InvalidCastException($"Cannot cast {organizationRequest.GetType()} to {typeof(TReq)}.");
+        ReceivedRequests.Add(request);
+        var response = (TRes)next();
+        return handler?.Invoke(request, fakeOrganizationService) ?? response;
     }
 }
