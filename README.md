@@ -782,6 +782,7 @@ This project uses [semantic-release](https://github.com/semantic-release/semanti
 
 - **Build workflow** (`build.yml`): Runs on all non-release branches; builds and tests the solution.
 - **Release workflow** (`release.yml`): Runs on `main` and `beta` branches and can also be started manually via `workflow_dispatch`; performs semantic versioning, NuGet publish, changelog generation, and GitHub release creation.
+- **NuGet publishing**: Uses NuGet Trusted Publishing via GitHub OIDC. Configure a nuget.org trusted publisher for repository `DIGITALLNature/DigitallTesting` and workflow file `release.yml`, and add the `NUGET_USER` repository secret with the nuget.org profile name (not the email address).
 - **Release checkout requirements**: `release.yml` uses full git history (`fetch-depth: 0`) and fetches tags to ensure semantic-release can resolve previous versions correctly.
 - **Commit conventions**: [Conventional Commits](https://www.conventionalcommits.org/) enforced via [commitlint](https://commitlint.js.org/) and [Husky](https://typicode.github.io/husky/) git hooks.
 
