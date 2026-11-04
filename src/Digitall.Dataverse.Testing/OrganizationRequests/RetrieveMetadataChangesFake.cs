@@ -1,16 +1,59 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
-using Microsoft.Xrm.Sdk.Messages;
+using System.Collections;
+using System.Reflection;
+using Digitall.Dataverse.Testing.Extensions;
 using Microsoft.Xrm.Sdk.Metadata;
 using Microsoft.Xrm.Sdk.Metadata.Query;
-using Microsoft.Xrm.Sdk.Query;
+using Microsoft.Xrm.Sdk.Messages;
 
 namespace Digitall.Dataverse.Testing.OrganizationRequests;
 
 // ReSharper disable once UnusedMember.Global : Registered automatically through reflection.
 public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetadataChangesRequest, RetrieveMetadataChangesResponse>
 {
+    private static readonly string[] s_entityProperties =
+    [
+        nameof(MetadataBase.MetadataId),
+        nameof(EntityMetadata.LogicalName),
+        nameof(EntityMetadata.SchemaName),
+        nameof(EntityMetadata.DisplayName),
+        nameof(EntityMetadata.IsManaged),
+        nameof(EntityMetadata.IsCustomEntity),
+        nameof(EntityMetadata.IsAuditEnabled),
+        nameof(EntityMetadata.OwnershipType),
+        nameof(EntityMetadata.Keys)
+    ];
+
+    private static readonly string[] s_attributeProperties =
+    [
+        nameof(MetadataBase.MetadataId),
+        nameof(AttributeMetadata.LogicalName),
+        nameof(AttributeMetadata.SchemaName),
+        nameof(AttributeMetadata.DisplayName),
+        nameof(AttributeMetadata.AttributeType),
+        nameof(AttributeMetadata.IsManaged)
+    ];
+
+    private static readonly string[] s_relationshipProperties =
+    [
+        nameof(MetadataBase.MetadataId),
+        nameof(RelationshipMetadataBase.SchemaName),
+        nameof(RelationshipMetadataBase.RelationshipType),
+        nameof(RelationshipMetadataBase.IsManaged)
+    ];
+
+    private static readonly string[] s_keyProperties =
+    [
+        nameof(MetadataBase.MetadataId),
+        nameof(EntityKeyMetadata.LogicalName),
+        nameof(EntityKeyMetadata.SchemaName),
+        nameof(EntityKeyMetadata.KeyAttributes),
+        nameof(EntityKeyMetadata.EntityKeyIndexStatus),
+        nameof(EntityKeyMetadata.IsManaged)
+    ];
+
     public override RetrieveMetadataChangesResponse Execute(
         RetrieveMetadataChangesRequest organizationRequest,
         FakeOrganizationService fakeOrganizationService)
@@ -24,12 +67,52 @@ public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetad
         }
 
         var query = organizationRequest.Query;
-        ValidateQuery(query);
+        var entityProperties = ValidateProperties(query.Properties, "entity", s_entityProperties);
+        var requestsKeys = ContainsProperty(entityProperties, nameof(EntityMetadata.Keys));
+        if (requestsKeys && query.KeyQuery == null)
+        {
+            throw new NotSupportedException("A KeyQuery with explicit properties is required when entity Keys are requested.");
+        }
+
+        var entityMatches = CreateMetadataIdPredicate(query.Criteria);
+        var attributeMatches = query.AttributeQuery == null
+            ? null
+            : CreateMetadataIdPredicate(query.AttributeQuery.Criteria);
+        var relationshipMatches = query.RelationshipQuery == null
+            ? null
+            : CreateMetadataIdPredicate(query.RelationshipQuery.Criteria);
+        var keyMatches = query.KeyQuery == null
+            ? null
+            : CreateMetadataIdPredicate(query.KeyQuery.Criteria);
+
+        var attributeProperties = query.AttributeQuery == null
+            ? null
+            : ValidateProperties(query.AttributeQuery.Properties, "attribute", s_attributeProperties);
+        var relationshipProperties = query.RelationshipQuery == null
+            ? null
+            : ValidateProperties(query.RelationshipQuery.Properties, "relationship", s_relationshipProperties);
+        var keyProperties = query.KeyQuery == null
+            ? null
+            : ValidateProperties(query.KeyQuery.Properties, "key", s_keyProperties);
+
+        if (query.LabelQuery != null)
+        {
+            throw new NotSupportedException("RetrieveMetadataChangesFake does not support label metadata queries.");
+        }
 
         var projectedMetadata = new EntityMetadataCollection();
-        foreach (var metadata in fakeOrganizationService.State.EntityMetadata.Values.Where(MatchesCriteria(query.Criteria)))
+        foreach (var metadata in fakeOrganizationService.State.EntityMetadata.Values.Where(metadata => entityMatches(metadata)))
         {
-            projectedMetadata.Add(ProjectEntityMetadata(metadata, query));
+            projectedMetadata.Add(ProjectEntityMetadata(
+                metadata,
+                entityProperties,
+                query,
+                attributeProperties,
+                attributeMatches,
+                relationshipProperties,
+                relationshipMatches,
+                keyProperties,
+                keyMatches));
         }
 
         return new RetrieveMetadataChangesResponse
@@ -41,111 +124,169 @@ public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetad
         };
     }
 
-    private static void ValidateQuery(EntityQueryExpression query)
+    private static IReadOnlyCollection<string> ValidateProperties(
+        MetadataPropertiesExpression? properties,
+        string metadataType,
+        IReadOnlyCollection<string> supportedProperties)
     {
-        if (query.AttributeQuery != null || query.RelationshipQuery != null || query.LabelQuery != null)
+        if (properties == null || properties.AllProperties)
         {
-            throw new NotSupportedException("RetrieveMetadataChangesFake supports entity and key metadata queries only.");
+            throw new NotSupportedException($"RetrieveMetadataChangesFake requires explicit {metadataType} metadata properties.");
         }
 
-        var entityProperties = query.Properties;
-        if (entityProperties == null || entityProperties.AllProperties)
+        if (properties.PropertyNames.Any(property =>
+                !supportedProperties.Contains(property, StringComparer.OrdinalIgnoreCase)))
         {
-            throw new NotSupportedException("RetrieveMetadataChangesFake requires explicit entity metadata properties.");
+            throw new NotSupportedException($"RetrieveMetadataChangesFake contains unsupported {metadataType} metadata properties.");
         }
 
-        var propertyNames = entityProperties.PropertyNames;
-        if (propertyNames.Any(property =>
-                !string.Equals(property, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(property, nameof(EntityMetadata.Keys), StringComparison.OrdinalIgnoreCase)))
+        return properties.PropertyNames.ToArray();
+    }
+
+    private static Func<MetadataBase, bool> CreateMetadataIdPredicate(MetadataFilterExpression? criteria)
+    {
+        if (criteria == null)
         {
-            throw new NotSupportedException("RetrieveMetadataChangesFake supports only entity MetadataId and Keys properties.");
+            throw new NotSupportedException("RetrieveMetadataChangesFake requires explicit metadata criteria.");
         }
 
-        var requestsKeys = propertyNames.Any(property =>
-            string.Equals(property, nameof(EntityMetadata.Keys), StringComparison.OrdinalIgnoreCase));
-        if (requestsKeys && query.KeyQuery == null)
+        var predicates = criteria.Conditions
+            .Select(CreateConditionPredicate)
+            .Concat(criteria.Filters.Select(CreateMetadataIdPredicate))
+            .ToArray();
+
+        return criteria.FilterOperator switch
         {
-            throw new NotSupportedException("A KeyQuery with explicit properties is required when entity Keys are requested.");
+            Microsoft.Xrm.Sdk.Query.LogicalOperator.And => metadata => predicates.All(predicate => predicate(metadata)),
+            Microsoft.Xrm.Sdk.Query.LogicalOperator.Or => metadata => predicates.Any(predicate => predicate(metadata)),
+            _ => throw new NotSupportedException($"Metadata filter operator '{criteria.FilterOperator}' is not supported.")
+        };
+    }
+
+    private static Func<MetadataBase, bool> CreateConditionPredicate(MetadataConditionExpression condition)
+    {
+        if (!string.Equals(condition.PropertyName, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NotSupportedException("RetrieveMetadataChangesFake supports only MetadataId filter conditions.");
         }
 
-        if (!requestsKeys && query.KeyQuery != null)
+        return condition.ConditionOperator switch
         {
-            throw new NotSupportedException("A KeyQuery requires the entity Keys property to be requested.");
+            MetadataConditionOperator.Equals when condition.Value is Guid metadataId =>
+                metadata => metadata.MetadataId == metadataId,
+            MetadataConditionOperator.In =>
+                CreateInPredicate(condition.Value),
+            _ => throw new NotSupportedException(
+                $"Metadata condition operator '{condition.ConditionOperator}' or its value is not supported.")
+        };
+    }
+
+    private static Func<MetadataBase, bool> CreateInPredicate(object? value)
+    {
+        if (value is not IEnumerable values || value is string)
+        {
+            throw new NotSupportedException("MetadataId In criteria require a list of Guid values.");
+        }
+
+        var metadataIds = new HashSet<Guid>();
+        foreach (var item in values)
+        {
+            if (item is not Guid metadataId)
+            {
+                throw new NotSupportedException("MetadataId In criteria require a list of Guid values.");
+            }
+
+            metadataIds.Add(metadataId);
+        }
+
+        return metadata => metadata.MetadataId.HasValue && metadataIds.Contains(metadata.MetadataId.Value);
+    }
+
+    private static EntityMetadata ProjectEntityMetadata(
+        EntityMetadata metadata,
+        IReadOnlyCollection<string> entityProperties,
+        EntityQueryExpression query,
+        IReadOnlyCollection<string>? attributeProperties,
+        Func<MetadataBase, bool>? attributeMatches,
+        IReadOnlyCollection<string>? relationshipProperties,
+        Func<MetadataBase, bool>? relationshipMatches,
+        IReadOnlyCollection<string>? keyProperties,
+        Func<MetadataBase, bool>? keyMatches)
+    {
+        var projection = ProjectMetadata(metadata, entityProperties);
+
+        if (query.AttributeQuery != null)
+        {
+            var attributes = metadata.Attributes?
+                .Where(attribute => attributeMatches!(attribute))
+                .Select(attribute => ProjectMetadata(attribute, attributeProperties!))
+                .ToArray() ?? [];
+            SetPropertyValue(projection, nameof(EntityMetadata.Attributes), attributes);
+        }
+
+        if (query.RelationshipQuery != null)
+        {
+            var oneToManyRelationships = metadata.OneToManyRelationships?
+                .Where(relationship => relationshipMatches!(relationship))
+                .Select(relationship => ProjectMetadata(relationship, relationshipProperties!))
+                .ToArray() ?? [];
+            var manyToManyRelationships = metadata.ManyToManyRelationships?
+                .Where(relationship => relationshipMatches!(relationship))
+                .Select(relationship => ProjectMetadata(relationship, relationshipProperties!))
+                .ToArray() ?? [];
+
+            SetPropertyValue(projection, nameof(EntityMetadata.OneToManyRelationships), oneToManyRelationships);
+            SetPropertyValue(projection, nameof(EntityMetadata.ManyToManyRelationships), manyToManyRelationships);
         }
 
         if (query.KeyQuery != null)
         {
-            var keyProperties = query.KeyQuery.Properties;
-            if (keyProperties == null || keyProperties.AllProperties)
-            {
-                throw new NotSupportedException("RetrieveMetadataChangesFake requires explicit key metadata properties.");
-            }
-
-            if (keyProperties.PropertyNames.Any(property =>
-                    !string.Equals(property, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(property, nameof(EntityKeyMetadata.LogicalName), StringComparison.OrdinalIgnoreCase)))
-            {
-                throw new NotSupportedException("RetrieveMetadataChangesFake supports only key MetadataId and LogicalName properties.");
-            }
-        }
-
-        if (query.Criteria.FilterOperator != LogicalOperator.And || query.Criteria.Filters.Count != 0)
-        {
-            throw new NotSupportedException("RetrieveMetadataChangesFake supports flat AND metadata criteria only.");
-        }
-
-        foreach (var condition in query.Criteria.Conditions)
-        {
-            if (!string.Equals(condition.PropertyName, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase)
-                || condition.ConditionOperator != MetadataConditionOperator.Equals
-                || condition.Value is not Guid)
-            {
-                throw new NotSupportedException("RetrieveMetadataChangesFake supports only MetadataId Equals {Guid} criteria.");
-            }
-        }
-    }
-
-    private static Func<EntityMetadata, bool> MatchesCriteria(MetadataFilterExpression criteria)
-    {
-        var metadataIds = criteria.Conditions.Select(condition => (Guid)condition.Value).ToArray();
-        return metadata => metadataIds.All(metadataId => metadata.MetadataId == metadataId);
-    }
-
-    private static EntityMetadata ProjectEntityMetadata(EntityMetadata metadata, EntityQueryExpression query)
-    {
-        var projection = new EntityMetadata();
-        var entityProperties = query.Properties.PropertyNames;
-
-        if (entityProperties.Any(property =>
-                string.Equals(property, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase)))
-        {
-            projection.MetadataId = metadata.MetadataId;
-        }
-
-        if (entityProperties.Any(property =>
-                string.Equals(property, nameof(EntityMetadata.Keys), StringComparison.OrdinalIgnoreCase)))
-        {
-            var keyProperties = query.KeyQuery!.Properties.PropertyNames;
-            var keys = metadata.Keys?.Select(key =>
-                {
-                    var includeMetadataId = keyProperties.Any(property =>
-                        string.Equals(property, nameof(MetadataBase.MetadataId), StringComparison.OrdinalIgnoreCase));
-                    var includeLogicalName = keyProperties.Any(property =>
-                        string.Equals(property, nameof(EntityKeyMetadata.LogicalName), StringComparison.OrdinalIgnoreCase));
-
-                    return new EntityKeyMetadata
-                    {
-                        MetadataId = includeMetadataId ? key.MetadataId : null,
-                        LogicalName = includeLogicalName ? key.LogicalName : null
-                    };
-                })
+            var keys = metadata.Keys?
+                .Where(key => keyMatches!(key))
+                .Select(key => ProjectMetadata(key, keyProperties!))
                 .ToArray() ?? [];
-            var keysProperty = typeof(EntityMetadata).GetProperty(nameof(EntityMetadata.Keys))
-                               ?? throw new InvalidOperationException("The SDK EntityMetadata.Keys property is unavailable.");
-            keysProperty.SetValue(projection, keys);
+            SetPropertyValue(projection, nameof(EntityMetadata.Keys), keys);
         }
 
         return projection;
+    }
+
+    private static TMetadata ProjectMetadata<TMetadata>(
+        TMetadata metadata,
+        IReadOnlyCollection<string> properties)
+        where TMetadata : MetadataBase
+    {
+        var projection = (TMetadata)(Activator.CreateInstance(metadata.GetType())
+                                     ?? throw new InvalidOperationException(
+                                         $"Could not create metadata projection for '{metadata.GetType().Name}'."));
+
+        foreach (var propertyName in properties)
+        {
+            var property = metadata.GetType().GetProperty(
+                propertyName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)
+                ?? throw new InvalidOperationException(
+                    $"The SDK metadata property '{metadata.GetType().Name}.{propertyName}' is unavailable.");
+            var value = property.GetValue(metadata).DeepClone();
+            SetPropertyValue(projection, property.Name, value);
+        }
+
+        return projection;
+    }
+
+    private static void SetPropertyValue(object target, string propertyName, object? value)
+    {
+        var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public)
+                       ?? throw new InvalidOperationException(
+                           $"The SDK metadata property '{target.GetType().Name}.{propertyName}' is unavailable.");
+        var setter = property.GetSetMethod(nonPublic: true)
+                     ?? throw new InvalidOperationException(
+                         $"The SDK metadata property '{target.GetType().Name}.{propertyName}' cannot be set.");
+        setter.Invoke(target, [value]);
+    }
+
+    private static bool ContainsProperty(IEnumerable<string> properties, string propertyName)
+    {
+        return properties.Any(property => string.Equals(property, propertyName, StringComparison.OrdinalIgnoreCase));
     }
 }

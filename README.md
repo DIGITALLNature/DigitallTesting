@@ -417,7 +417,7 @@ Built-in fakes for common Dataverse operations:
 | `RetrieveCurrentOrganizationRequest` | `RetrieveCurrentOrganizationFake` | Current organization details retrieval |
 | `RetrieveEntityRequest` | `RetrieveEntityFake` | Entity metadata retrieval |
 | `RetrieveAllEntitiesRequest` | `RetrieveAllEntitiesFake` | Retrieve metadata for all known entities |
-| `RetrieveMetadataChangesRequest` | `RetrieveMetadataChangesFake` | Filter entity metadata by `MetadataId` and project entity/key properties |
+| `RetrieveMetadataChangesRequest` | `RetrieveMetadataChangesFake` | Filter entity, attribute, relationship, and key metadata by `MetadataId` and project explicit properties |
 | `RetrieveAttributeRequest` | `RetrieveAttributeFake` | Attribute metadata retrieval |
 | `RetrieveRelationshipRequest` | `RetrieveRelationshipFake` | Relationship metadata retrieval by name or metadata ID |
 | `QueryExpressionToFetchXmlRequest` | `QueryExpressionToFetchXmlFake` | Convert a `QueryExpression` to FetchXml |
@@ -563,7 +563,7 @@ var service = new FakeDataverseBuilder()
 
 `RetrieveAllEntitiesRequest` projects attributes, relationships, and privileges only when their corresponding `EntityFilters` flags are set. Responses are detached copies and do not mutate registered metadata. The fake stores one metadata view, so `RetrieveAsIfPublished` returns that same view for either value.
 
-`RetrieveMetadataChangesRequest` supports flat `MetadataId Equals {Guid}` criteria and explicit projections of entity `MetadataId`/`Keys` and key `MetadataId`/`LogicalName`. `ClientVersionStamp`, delta queries, and other metadata query forms are not supported and throw `NotSupportedException`.
+`RetrieveMetadataChangesRequest` supports `MetadataId Equals {Guid}` and `MetadataId In` criteria, including nested AND/OR filters, for entity, attribute, relationship, and key metadata. Entity, attribute, relationship, and key query projections require explicit properties from the supported metadata property sets; child queries can be projected independently of the entity property list. `ClientVersionStamp`, delta queries, label queries, and unsupported properties or filter conditions throw `NotSupportedException`.
 
 ---
 
