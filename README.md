@@ -548,6 +548,8 @@ var service = new FakeDataverseBuilder()
     .GetOrganizationService();
 ```
 
+`RetrieveAllEntitiesRequest` projects attributes, relationships, and privileges only when their corresponding `EntityFilters` flags are set. Responses are detached copies and do not mutate registered metadata. The fake stores one metadata view, so `RetrieveAsIfPublished` returns that same view for either value.
+
 `RetrieveMetadataChangesRequest` supports flat `MetadataId Equals {Guid}` criteria and explicit projections of entity `MetadataId`/`Keys` and key `MetadataId`/`LogicalName`. `ClientVersionStamp`, delta queries, and other metadata query forms are not supported and throw `NotSupportedException`.
 
 ---
