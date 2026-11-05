@@ -565,6 +565,8 @@ var service = new FakeDataverseBuilder()
 
 `RetrieveMetadataChangesRequest` supports `MetadataId Equals {Guid}` and `MetadataId In` criteria, including nested AND/OR filters, for entity, attribute, relationship, and key metadata. Relationship queries filter and project one-to-many, many-to-one, and many-to-many relationships. Entity, attribute, relationship, and key query projections require explicit properties from the supported metadata property sets; child queries can be projected independently of the entity property list. `ClientVersionStamp`, delta queries, label queries, and unsupported properties or filter conditions throw `NotSupportedException`.
 
+Entity projections also accept `Attributes`, `OneToManyRelationships`, `ManyToOneRelationships`, `ManyToManyRelationships`, and `Keys` when the corresponding `AttributeQuery`, `RelationshipQuery`, or `KeyQuery` is supplied with explicit properties. Only matching children and their requested properties are returned; collections without a child query remain unpopulated. A relationship query projects all three relationship collections. Requesting a parent collection without its child query throws `NotSupportedException`.
+
 ---
 
 ## Plugin Testing

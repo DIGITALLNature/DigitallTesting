@@ -104,9 +104,138 @@ public class RetrieveMetadataChangesFakeTests
     {
         var service = new FakeDataverseBuilder().GetOrganizationService();
         var request = CreateRequest();
-        request.Query.Properties = new MetadataPropertiesExpression(nameof(EntityMetadata.Attributes));
+        request.Query.Properties = new MetadataPropertiesExpression(nameof(EntityMetadata.ObjectTypeCode));
 
         await Assert.That(() => service.Execute(request)).Throws<NotSupportedException>();
+    }
+
+    [Test]
+    [Arguments(nameof(EntityMetadata.Attributes))]
+    [Arguments(nameof(EntityMetadata.OneToManyRelationships))]
+    [Arguments(nameof(EntityMetadata.ManyToOneRelationships))]
+    [Arguments(nameof(EntityMetadata.ManyToManyRelationships))]
+    [Arguments(nameof(EntityMetadata.Keys))]
+    [Arguments("All")]
+    public async Task Execute_ParentCollections_FiltersProjectsAndIsolatesChildren(string collection)
+    {
+        var attributeId = Guid.NewGuid();
+        var oneToManyId = Guid.NewGuid();
+        var manyToOneId = Guid.NewGuid();
+        var manyToManyId = Guid.NewGuid();
+        var keyId = Guid.NewGuid();
+        var entityId = Guid.NewGuid();
+        var metadata = new EntityMetadata { LogicalName = "account", MetadataId = entityId };
+        SetEntityAttributes(metadata,
+        [
+            new StringAttributeMetadata { MetadataId = attributeId, LogicalName = "name", SchemaName = "Name" },
+            new StringAttributeMetadata { MetadataId = Guid.NewGuid(), LogicalName = "description" }
+        ]);
+        SetMetadataProperty(metadata, nameof(EntityMetadata.OneToManyRelationships), new[]
+        {
+            new OneToManyRelationshipMetadata { MetadataId = oneToManyId, SchemaName = "account_contacts" },
+            new OneToManyRelationshipMetadata { MetadataId = Guid.NewGuid(), SchemaName = "account_leads" }
+        });
+        SetMetadataProperty(metadata, nameof(EntityMetadata.ManyToOneRelationships), new[]
+        {
+            new OneToManyRelationshipMetadata { MetadataId = manyToOneId, SchemaName = "account_parent" },
+            new OneToManyRelationshipMetadata { MetadataId = Guid.NewGuid(), SchemaName = "account_owner" }
+        });
+        SetMetadataProperty(metadata, nameof(EntityMetadata.ManyToManyRelationships), new[]
+        {
+            new ManyToManyRelationshipMetadata { MetadataId = manyToManyId, SchemaName = "account_teams" },
+            new ManyToManyRelationshipMetadata { MetadataId = Guid.NewGuid(), SchemaName = "account_lists" }
+        });
+        SetEntityKeys(metadata,
+        [
+            new EntityKeyMetadata { MetadataId = keyId, LogicalName = "ak_name", SchemaName = "AK_Name" },
+            new EntityKeyMetadata { MetadataId = Guid.NewGuid(), LogicalName = "ak_other" }
+        ]);
+        var service = new FakeOrganizationService();
+        service.AddMetadata(metadata);
+        var all = collection == "All";
+        var attributes = all || collection == nameof(EntityMetadata.Attributes);
+        var relationships = all || collection is nameof(EntityMetadata.OneToManyRelationships)
+            or nameof(EntityMetadata.ManyToOneRelationships) or nameof(EntityMetadata.ManyToManyRelationships);
+        var keys = all || collection == nameof(EntityMetadata.Keys);
+        var query = new EntityQueryExpression
+        {
+            Properties = all
+                ? new MetadataPropertiesExpression(nameof(MetadataBase.MetadataId), nameof(EntityMetadata.Attributes),
+                    nameof(EntityMetadata.OneToManyRelationships), nameof(EntityMetadata.ManyToOneRelationships),
+                    nameof(EntityMetadata.ManyToManyRelationships), nameof(EntityMetadata.Keys))
+                : new MetadataPropertiesExpression(nameof(MetadataBase.MetadataId), collection),
+            AttributeQuery = attributes ? new AttributeQueryExpression
+            {
+                Properties = new MetadataPropertiesExpression(nameof(MetadataBase.MetadataId)),
+                Criteria = MetadataIdFilter(attributeId)
+            } : null,
+            RelationshipQuery = relationships ? new RelationshipQueryExpression
+            {
+                Properties = new MetadataPropertiesExpression(nameof(MetadataBase.MetadataId)),
+                Criteria = new MetadataFilterExpression
+                {
+                    Conditions =
+                    {
+                        new MetadataConditionExpression(nameof(MetadataBase.MetadataId), MetadataConditionOperator.In,
+                            new[] { oneToManyId, manyToOneId, manyToManyId })
+                    }
+                }
+            } : null,
+            KeyQuery = keys ? new EntityKeyQueryExpression
+            {
+                Properties = new MetadataPropertiesExpression(nameof(MetadataBase.MetadataId)),
+                Criteria = MetadataIdFilter(keyId)
+            } : null
+        };
+        query.Criteria = MetadataIdFilter(entityId);
+
+        var response = (RetrieveMetadataChangesResponse)service.Execute(new RetrieveMetadataChangesRequest { Query = query });
+
+        await Assert.That(response.EntityMetadata).Count().IsEqualTo(1);
+        var projected = response.EntityMetadata[0];
+        await Assert.That(projected.MetadataId).IsEqualTo(metadata.MetadataId);
+        await Assert.That(projected.LogicalName).IsNull();
+        await Assert.That(projected.Attributes?.Select(child => child.MetadataId).ToArray() ?? [])
+            .IsEquivalentTo(attributes ? new Guid?[] { attributeId } : []);
+        await Assert.That(projected.OneToManyRelationships?.Select(child => child.MetadataId).ToArray() ?? [])
+            .IsEquivalentTo(relationships ? new Guid?[] { oneToManyId } : []);
+        await Assert.That(projected.ManyToOneRelationships?.Select(child => child.MetadataId).ToArray() ?? [])
+            .IsEquivalentTo(relationships ? new Guid?[] { manyToOneId } : []);
+        await Assert.That(projected.ManyToManyRelationships?.Select(child => child.MetadataId).ToArray() ?? [])
+            .IsEquivalentTo(relationships ? new Guid?[] { manyToManyId } : []);
+        await Assert.That(projected.Keys?.Select(child => child.MetadataId).ToArray() ?? [])
+            .IsEquivalentTo(keys ? new Guid?[] { keyId } : []);
+        var projectedSchemaNames = (projected.Attributes ?? []).Select(child => child.SchemaName)
+            .Concat((projected.OneToManyRelationships ?? []).Select(child => child.SchemaName))
+            .Concat((projected.ManyToOneRelationships ?? []).Select(child => child.SchemaName))
+            .Concat((projected.ManyToManyRelationships ?? []).Select(child => child.SchemaName))
+            .Concat((projected.Keys ?? []).Select(child => child.SchemaName));
+        foreach (var schemaName in projectedSchemaNames)
+        {
+            await Assert.That(schemaName).IsNull();
+        }
+
+        await Assert.That(metadata.Attributes).Count().IsEqualTo(2);
+        await Assert.That(metadata.Attributes[0].SchemaName).IsEqualTo("Name");
+        await Assert.That(metadata.OneToManyRelationships[0].SchemaName).IsEqualTo("account_contacts");
+        await Assert.That(metadata.ManyToOneRelationships[0].SchemaName).IsEqualTo("account_parent");
+        await Assert.That(metadata.ManyToManyRelationships[0].SchemaName).IsEqualTo("account_teams");
+        await Assert.That(metadata.Keys[0].SchemaName).IsEqualTo("AK_Name");
+    }
+
+    [Test]
+    [Arguments(nameof(EntityMetadata.Attributes))]
+    [Arguments(nameof(EntityMetadata.OneToManyRelationships))]
+    [Arguments(nameof(EntityMetadata.ManyToOneRelationships))]
+    [Arguments(nameof(EntityMetadata.ManyToManyRelationships))]
+    [Arguments(nameof(EntityMetadata.Keys))]
+    public async Task Execute_ParentCollectionWithoutChildQuery_Throws(string collection)
+    {
+        var service = new FakeOrganizationService();
+        var query = new EntityQueryExpression { Properties = new MetadataPropertiesExpression(collection) };
+
+        await Assert.That(() => service.Execute(new RetrieveMetadataChangesRequest { Query = query }))
+            .Throws<NotSupportedException>();
     }
 
     [Test]
@@ -417,6 +546,14 @@ public class RetrieveMetadataChangesFakeTests
         await Assert.That(secondResponse.EntityMetadata[0].Keys[0].KeyAttributes[0]).IsEqualTo("name");
         await Assert.That(key.KeyAttributes[0]).IsEqualTo("name");
     }
+
+    private static MetadataFilterExpression MetadataIdFilter(Guid metadataId) => new()
+    {
+        Conditions =
+        {
+            new MetadataConditionExpression(nameof(MetadataBase.MetadataId), MetadataConditionOperator.Equals, metadataId)
+        }
+    };
 
     private static RetrieveMetadataChangesRequest CreateRequest(Guid? metadataId = null)
     {
