@@ -1,3 +1,16 @@
+## [1.3.2](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.3.1...v1.3.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* **metadata:** allow explicitly queried parent collections ([e94462c](https://github.com/DIGITALLNature/DigitallTesting/commit/e94462ca3e6202fa16a76f5cc5d07097d3eaeb38)), closes [#68](https://github.com/DIGITALLNature/DigitallTesting/issues/68)
+* **query:** return empty pages beyond the result range ([020def3](https://github.com/DIGITALLNature/DigitallTesting/commit/020def34e635f7b3e4fe450d74f32b5877a6ef92)), closes [#67](https://github.com/DIGITALLNature/DigitallTesting/issues/67)
+
+
+### Performance Improvements
+
+* **metadata:** avoid cloning collections before child projection ([1edee59](https://github.com/DIGITALLNature/DigitallTesting/commit/1edee591efac6bdd17e809c7a194747673644cef))
+
 ## [1.3.1](https://github.com/DIGITALLNature/DigitallTesting/compare/v1.3.0...v1.3.1) (2026-11-04)
 
 
