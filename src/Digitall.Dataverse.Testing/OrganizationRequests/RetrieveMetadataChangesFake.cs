@@ -13,6 +13,15 @@ namespace Digitall.Dataverse.Testing.OrganizationRequests;
 // ReSharper disable once UnusedMember.Global : Registered automatically through reflection.
 public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetadataChangesRequest, RetrieveMetadataChangesResponse>
 {
+    private static readonly string[] s_entityCollectionProperties =
+    [
+        nameof(EntityMetadata.Attributes),
+        nameof(EntityMetadata.OneToManyRelationships),
+        nameof(EntityMetadata.ManyToOneRelationships),
+        nameof(EntityMetadata.ManyToManyRelationships),
+        nameof(EntityMetadata.Keys)
+    ];
+
     private static readonly string[] s_entityProperties =
     [
         nameof(MetadataBase.MetadataId),
@@ -23,7 +32,7 @@ public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetad
         nameof(EntityMetadata.IsCustomEntity),
         nameof(EntityMetadata.IsAuditEnabled),
         nameof(EntityMetadata.OwnershipType),
-        nameof(EntityMetadata.Keys)
+        .. s_entityCollectionProperties
     ];
 
     private static readonly string[] s_attributeProperties =
@@ -68,6 +77,19 @@ public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetad
 
         var query = organizationRequest.Query;
         var entityProperties = ValidateProperties(query.Properties, "entity", s_entityProperties);
+        if (ContainsProperty(entityProperties, nameof(EntityMetadata.Attributes)) && query.AttributeQuery == null)
+        {
+            throw new NotSupportedException("An AttributeQuery with explicit properties is required when entity Attributes are requested.");
+        }
+
+        var requestsRelationships = ContainsProperty(entityProperties, nameof(EntityMetadata.OneToManyRelationships))
+                                    || ContainsProperty(entityProperties, nameof(EntityMetadata.ManyToOneRelationships))
+                                    || ContainsProperty(entityProperties, nameof(EntityMetadata.ManyToManyRelationships));
+        if (requestsRelationships && query.RelationshipQuery == null)
+        {
+            throw new NotSupportedException("A RelationshipQuery with explicit properties is required when entity relationships are requested.");
+        }
+
         var requestsKeys = ContainsProperty(entityProperties, nameof(EntityMetadata.Keys));
         if (requestsKeys && query.KeyQuery == null)
         {
@@ -213,7 +235,10 @@ public class RetrieveMetadataChangesFake : OrganizationRequestFake<RetrieveMetad
         IReadOnlyCollection<string>? keyProperties,
         Func<MetadataBase, bool>? keyMatches)
     {
-        var projection = ProjectMetadata(metadata, entityProperties);
+        var scalarProperties = entityProperties
+            .Where(property => !s_entityCollectionProperties.Contains(property, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+        var projection = ProjectMetadata(metadata, scalarProperties);
 
         if (query.AttributeQuery != null)
         {

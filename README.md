@@ -403,7 +403,7 @@ Built-in fakes for common Dataverse operations:
 | `CreateRequest` | `CreateFake` | Entity creation with duplicate detection and deep insert |
 | `CreateMultipleRequest` | `CreateMultipleFake` | Bulk entity creation with deep insert |
 | `RetrieveRequest` | `RetrieveFake` | Entity retrieval with column projection |
-| `RetrieveMultipleRequest` | `RetrieveMultipleFake` | Query execution pipeline |
+| `RetrieveMultipleRequest` | `RetrieveMultipleFake` | Query execution pipeline; pages beyond the result range return an empty collection with `MoreRecords = false` |
 | `UpdateRequest` | `UpdateFake` | Entity updates with existence validation |
 | `UpdateMultipleRequest` | `UpdateMultipleFake` | Bulk entity updates with existence validation |
 | `DeleteRequest` | `DeleteFake` | Entity deletion |
@@ -564,6 +564,8 @@ var service = new FakeDataverseBuilder()
 `RetrieveAllEntitiesRequest` projects attributes, relationships, and privileges only when their corresponding `EntityFilters` flags are set. Responses are detached copies and do not mutate registered metadata. The fake stores one metadata view, so `RetrieveAsIfPublished` returns that same view for either value.
 
 `RetrieveMetadataChangesRequest` supports `MetadataId Equals {Guid}` and `MetadataId In` criteria, including nested AND/OR filters, for entity, attribute, relationship, and key metadata. Relationship queries filter and project one-to-many, many-to-one, and many-to-many relationships. Entity, attribute, relationship, and key query projections require explicit properties from the supported metadata property sets; child queries can be projected independently of the entity property list. `ClientVersionStamp`, delta queries, label queries, and unsupported properties or filter conditions throw `NotSupportedException`.
+
+Entity projections also accept `Attributes`, `OneToManyRelationships`, `ManyToOneRelationships`, `ManyToManyRelationships`, and `Keys` when the corresponding `AttributeQuery`, `RelationshipQuery`, or `KeyQuery` is supplied with explicit properties. Only matching children and their requested properties are returned; collections without a child query remain unpopulated. A relationship query projects all three relationship collections. Requesting a parent collection without its child query throws `NotSupportedException`.
 
 ---
 
