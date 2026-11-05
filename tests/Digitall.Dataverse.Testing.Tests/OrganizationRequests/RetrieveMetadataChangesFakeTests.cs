@@ -159,6 +159,7 @@ public class RetrieveMetadataChangesFakeTests
         var keys = all || collection == nameof(EntityMetadata.Keys);
         var query = new EntityQueryExpression
         {
+            Criteria = MetadataIdFilter(entityId),
             Properties = all
                 ? new MetadataPropertiesExpression(nameof(MetadataBase.MetadataId), nameof(EntityMetadata.Attributes),
                     nameof(EntityMetadata.OneToManyRelationships), nameof(EntityMetadata.ManyToOneRelationships),
@@ -187,7 +188,6 @@ public class RetrieveMetadataChangesFakeTests
                 Criteria = MetadataIdFilter(keyId)
             } : null
         };
-        query.Criteria = MetadataIdFilter(entityId);
 
         var response = (RetrieveMetadataChangesResponse)service.Execute(new RetrieveMetadataChangesRequest { Query = query });
 
@@ -398,7 +398,7 @@ public class RetrieveMetadataChangesFakeTests
                         new MetadataConditionExpression(
                             nameof(MetadataBase.MetadataId),
                             MetadataConditionOperator.In,
-                            new Guid[] { matchingId })
+                            new[] { matchingId })
                     }
                 }
             }
