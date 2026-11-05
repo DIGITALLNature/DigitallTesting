@@ -123,25 +123,14 @@ public class RetrieveMultipleFake : OrganizationRequestFake<RetrieveMultipleRequ
             pageSize = pageInfo.Count == 0 ? maxRetrieveCount : pageInfo.Count;
         }
 
-        // Figure out where in the list we need to start and how many items we need to grab
-        var numberToGet = pageSize;
-        var startPosition = 0;
-
-        if (pageNumber != 1)
+        if (pageSize <= 0)
         {
-            startPosition = (pageNumber - 1) * pageSize;
+            ErrorFactory.ThrowFault(ErrorCodes.InvalidArgument, "The paging count must be positive.");
         }
 
-        if (internalResult.Count < pageSize)
-        {
-            numberToGet = internalResult.Count;
-        }
-        else if (internalResult.Count - pageSize * (pageNumber - 1) < pageSize)
-        {
-            numberToGet = internalResult.Count - pageSize * (pageNumber - 1);
-        }
-
-        var recordsToReturn = startPosition + numberToGet > internalResult.Count ? [] : internalResult.GetRange(startPosition, numberToGet);
+        var startPosition = (long)(pageNumber - 1) * pageSize;
+        var numberToGet = (int)Math.Min(pageSize, Math.Max(0L, internalResult.Count - startPosition));
+        var recordsToReturn = numberToGet == 0 ? [] : internalResult.GetRange((int)startPosition, numberToGet);
 
         recordsToReturn.ForEach(e => PatchDateFormat(e, fakeOrganizationService));
         recordsToReturn.ForEach(FillFormattedValues);
@@ -154,7 +143,7 @@ public class RetrieveMultipleFake : OrganizationRequestFake<RetrieveMultipleRequ
             {
                 {
                     "EntityCollection",
-                    new EntityCollection(recordsToReturn) { EntityName = entityName, MoreRecords = internalResult.Count - pageSize * pageNumber > 0, TotalRecordCount = totalRecordCount }
+                    new EntityCollection(recordsToReturn) { EntityName = entityName, MoreRecords = startPosition + numberToGet < internalResult.Count, TotalRecordCount = totalRecordCount }
                 }
             }
         };

@@ -403,7 +403,7 @@ Built-in fakes for common Dataverse operations:
 | `CreateRequest` | `CreateFake` | Entity creation with duplicate detection and deep insert |
 | `CreateMultipleRequest` | `CreateMultipleFake` | Bulk entity creation with deep insert |
 | `RetrieveRequest` | `RetrieveFake` | Entity retrieval with column projection |
-| `RetrieveMultipleRequest` | `RetrieveMultipleFake` | Query execution pipeline |
+| `RetrieveMultipleRequest` | `RetrieveMultipleFake` | Query execution pipeline; pages beyond the result range return an empty collection with `MoreRecords = false` |
 | `UpdateRequest` | `UpdateFake` | Entity updates with existence validation |
 | `UpdateMultipleRequest` | `UpdateMultipleFake` | Bulk entity updates with existence validation |
 | `DeleteRequest` | `DeleteFake` | Entity deletion |

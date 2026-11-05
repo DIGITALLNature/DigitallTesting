@@ -1,6 +1,8 @@
 // Copyright (c) DIGITALL Nature. All rights reserved
 // DIGITALL Nature licenses this file to you under the Microsoft Public License.
 
+using System.ServiceModel;
+using Digitall.Dataverse.Testing.Errors;
 using Digitall.Dataverse.Testing.Tests.Fixtures;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
@@ -95,6 +97,100 @@ public class RetrieveMultipleTests
         await Assert.That(result.PagingCookie).IsNull();
         await Assert.That(result.MoreRecords).IsFalse();
 
+    }
+
+    [Test]
+    [Arguments(0, 2, 1, 0, false)]
+    [Arguments(0, 2, 3, 0, false)]
+    [Arguments(3, 2, 1, 2, true)]
+    [Arguments(3, 2, 2, 1, false)]
+    [Arguments(4, 2, 2, 2, false)]
+    [Arguments(3, 2, 3, 0, false)]
+    [Arguments(3, 2, 100, 0, false)]
+    [Arguments(3, 2, int.MaxValue, 0, false)]
+    [Arguments(3, int.MaxValue, 2, 0, false)]
+    [Arguments(3, int.MaxValue, int.MaxValue, 0, false)]
+    [Arguments(3, 0, 3, 0, false)]
+    public async Task QueryExpression_PagingBoundaries_ReturnsExpectedPage(
+        int recordCount, int pageSize, int pageNumber, int expectedCount, bool moreRecords)
+    {
+        var sut = new FakeOrganizationServiceAsync { Options = { MaxRetrieveCount = 2 } };
+        sut.AddRange(Enumerable.Range(0, recordCount)
+            .Select(index => new Account(Guid.NewGuid()) { Name = $"Account {index}" }));
+        var query = new QueryExpression(Account.EntityLogicalName)
+        {
+            ColumnSet = new ColumnSet(Account.LogicalNames.Name),
+            Orders = { new OrderExpression(Account.LogicalNames.Name, OrderType.Ascending) },
+            PageInfo = new PagingInfo
+            {
+                Count = pageSize,
+                PageNumber = pageNumber,
+                ReturnTotalRecordCount = true
+            }
+        };
+
+        var result = await sut.RetrieveMultipleAsync(query, CancellationToken.None);
+
+        await Assert.That(result.Entities).Count().IsEqualTo(expectedCount);
+        await Assert.That(result.MoreRecords).IsEqualTo(moreRecords);
+        await Assert.That(result.TotalRecordCount).IsEqualTo(recordCount);
+        await Assert.That(result.EntityName).IsEqualTo(Account.EntityLogicalName);
+        if (moreRecords)
+        {
+            await Assert.That(result.PagingCookie).IsNotNull();
+        }
+        else
+        {
+            await Assert.That(result.PagingCookie).IsNull();
+        }
+
+        var effectivePageSize = pageSize == 0 ? 2 : pageSize;
+        var expectedNames = Enumerable.Range(0, recordCount)
+            .Skip((int)Math.Min((long)(pageNumber - 1) * effectivePageSize, recordCount))
+            .Take(expectedCount)
+            .Select(index => $"Account {index}");
+        await Assert.That(result.Entities.Select(entity => entity.GetAttributeValue<string>(Account.LogicalNames.Name)))
+            .IsEquivalentTo(expectedNames);
+    }
+
+    [Test]
+    [Arguments(-1, 2)]
+    [Arguments(0, 0)]
+    [Arguments(0, -1)]
+    public async Task QueryExpression_InvalidPageSize_ThrowsFault(int pageSize, int maxRetrieveCount)
+    {
+        var sut = new FakeOrganizationService { Options = { MaxRetrieveCount = maxRetrieveCount } };
+        var query = new QueryExpression(Account.EntityLogicalName)
+        {
+            PageInfo = new PagingInfo { Count = pageSize, PageNumber = 1 }
+        };
+
+        var exception = Assert.Throws<FaultException<OrganizationServiceFault>>(() => sut.RetrieveMultiple(query));
+
+        await Assert.That(exception.Detail.ErrorCode).IsEqualTo((int)ErrorCodes.InvalidArgument);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task RetrieveMultiple_OtherQueryTypesBeyondLastPage_ReturnsEmptyPage(bool useFetchXml)
+    {
+        var sut = new FakeOrganizationService();
+        sut.AddRange(Enumerable.Range(0, 3)
+            .Select(index => new Account(Guid.NewGuid()) { Name = $"Account {index}" }));
+        QueryBase query = useFetchXml
+            ? new FetchExpression("<fetch count='2' page='3'><entity name='account'><attribute name='name'/></entity></fetch>")
+            : new QueryByAttribute(Account.EntityLogicalName)
+            {
+                ColumnSet = new ColumnSet(Account.LogicalNames.Name),
+                PageInfo = new PagingInfo { Count = 2, PageNumber = 3 }
+            };
+
+        var result = sut.RetrieveMultiple(query);
+
+        await Assert.That(result.Entities).IsEmpty();
+        await Assert.That(result.MoreRecords).IsFalse();
+        await Assert.That(result.PagingCookie).IsNull();
     }
 
     [Test]
